@@ -1,0 +1,42 @@
+{
+  "John Smith": {
+    "fullName": "John Smith",
+    "responded": false
+  },
+  "Jane Doe": {
+    "fullName": "Jane Doe",
+    "responded": false
+  },
+  "Michael Johnson": {
+    "fullName": "Michael Johnson",
+    "responded": false
+  },
+  "Emily Williams": {
+    "fullName": "Emily Williams",
+    "responded": false
+  },
+  "Robert Brown": {
+    "fullName": "Robert Brown",
+    "responded": false
+  },
+  "Sarah Davis": {
+    "fullName": "Sarah Davis",
+    "responded": false
+  },
+  "David Miller": {
+    "fullName": "David Miller",
+    "responded": false
+  },
+  "Jennifer Wilson": {
+    "fullName": "Jennifer Wilson",
+    "responded": false
+  },
+  "Christopher Moore": {
+    "fullName": "Christopher Moore",
+    "responded": false
+  },
+  "Jessica Taylor": {
+    "fullName": "Jessica Taylor",
+    "responded": false
+  }
+}
