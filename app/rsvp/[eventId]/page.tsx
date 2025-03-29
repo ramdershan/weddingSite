@@ -40,9 +40,10 @@ const EVENT_DETAILS = {
 
 export default function EventRSVPPage({ params }: { params: { eventId: string } }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const eventId = params.eventId;
-  const { guest } = useGuestContext();
+  const { guest, setGuest } = useGuestContext();
   
   // Get event details or redirect if invalid event
   const eventDetails = EVENT_DETAILS[eventId as keyof typeof EVENT_DETAILS];
@@ -72,19 +73,41 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       return;
     }
     
-    // If no guest is logged in, show login modal
-    if (!guest) {
-      setShowLoginModal(true);
+    // Check for name in URL parameters
+    const nameFromUrl = searchParams.get('name');
+    
+    // If guest is already logged in, proceed without showing modal
+    if (guest) {
+      // If URL name matches the logged in guest, we can pre-fill the form immediately
+      // This improves perceived performance while we wait for the async data
+      if (nameFromUrl && nameFromUrl.toLowerCase() === guest.fullName.toLowerCase()) {
+        setIsLoading(false);
+      }
+      fetchGuestData();
       return;
     }
     
-    fetchGuestData();
-  }, [eventId, eventDetails, guest]);
+    // If name is in URL and no guest is logged in, try to auto-login
+    if (nameFromUrl) {
+      autoLoginWithName(nameFromUrl);
+    } else {
+      // No guest and no name in URL, show login modal
+      setShowLoginModal(true);
+    }
+  }, [eventId, eventDetails, guest, searchParams]);
   
   const fetchGuestData = async () => {
     if (!guest) return;
     
     try {
+      // If guest is already present, we can assume they're valid
+      // and immediately start showing the form while we fetch data in the background
+      if (!isLoading) {
+        // Form is already showing, just fetch data in background
+      } else {
+        setIsLoading(true);
+      }
+      
       // Pre-fill form if guest has already responded to this event
       if (guest.responded && guest.eventResponses && guest.eventResponses[eventId]) {
         const eventResponse = guest.eventResponses[eventId];
@@ -116,6 +139,25 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     }
   };
   
+  // Auto-login function using name from URL
+  const autoLoginWithName = async (name: string) => {
+    try {
+      const response = await fetch(`/api/guest?name=${encodeURIComponent(name)}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setGuest(data.guest);
+        // Guest is now set, useEffect will call fetchGuestData
+      } else {
+        // Auto-login failed, show login modal
+        setShowLoginModal(true);
+      }
+    } catch (error) {
+      console.error("Error auto-logging in with name from URL:", error);
+      setShowLoginModal(true);
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -139,7 +181,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/rsvp', {
+      const apiResponse = await fetch('/api/rsvp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +198,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         }),
       });
       
-      if (!response.ok) {
+      if (!apiResponse.ok) {
         throw new Error('Failed to submit RSVP');
       }
       

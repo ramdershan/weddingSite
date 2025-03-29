@@ -11,13 +11,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useGuestContext } from "@/context/guest-context";
 import { LogOut, User } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LoginModal } from "./login-modal";
+import { usePathname, useRouter } from "next/navigation";
 
 export function UserNav() {
   const { guest, clearGuest } = useGuestContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  
+  // Check if we're on an RSVP page
+  const isOnRsvpPage = pathname?.includes('/rsvp');
 
   if (!guest) {
     return (
@@ -63,6 +69,11 @@ export function UserNav() {
             onClick={() => {
               clearGuest();
               setOpen(false);
+              
+              // If on an RSVP page, redirect to home after logout
+              if (isOnRsvpPage) {
+                router.push('/');
+              }
             }}
           >
             <LogOut className="mr-2 h-4 w-4" />

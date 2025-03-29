@@ -38,19 +38,12 @@ export function CountdownTimer({
     // Only run on the client
     if (!isClient) return;
     
-    console.log('Target date received:', targetDate);
-    console.log('Target date as string:', targetDateObj.toString());
-    console.log('Target timestamp:', targetDateObj.getTime());
-    console.log('Current time:', new Date().toString());
-    console.log('Time difference (ms):', targetDateObj.getTime() - new Date().getTime());
-    
     const calculateTimeLeft = () => {
       const now = new Date();
       const difference = targetDateObj.getTime() - now.getTime();
       const isPast = difference <= 0;
       
       if (isPast) {
-        console.log('Event is in the past');
         return { days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true };
       }
       
@@ -58,9 +51,7 @@ export function CountdownTimer({
       const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
       const minutes = Math.floor((difference / 1000 / 60) % 60);
       const seconds = Math.floor((difference / 1000) % 60);
-      
-      console.log(`Time left: ${days}d ${hours}h ${minutes}m ${seconds}s`);
-      
+            
       return {
         days,
         hours,

@@ -10,11 +10,12 @@ export function PhotoGallerySection() {
   };
 
   return (
-    <section className="py-20 sky-gradient" id="photos">
+    <section className="content-section py-20" id="photos">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-windsong mb-2">Photo Gallery</h2>
           <div className="h-px w-20 bg-primary/50 mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Relive our special moments through photographs</p>
         </div>
         
         <div className="text-center max-w-2xl mx-auto">
@@ -25,10 +26,10 @@ export function PhotoGallerySection() {
             asChild
           >
             <a href="#" onClick={handleGalleryClick}>
-              <Camera className="mr-2 h-5 w-5" /> View Photo Gallery
+              <Camera className="mr-2 h-5 w-5 text-primary" /> View Photo Gallery
             </a>
           </Button>
-          <p className="text-muted-foreground">Coming Soon...</p>
+          <p className="text-sm text-muted-foreground mt-4">Coming Soon...</p>
         </div>
       </div>
     </section>

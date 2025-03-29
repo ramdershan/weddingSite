@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, MapPin, Heart, Camera, PartyPopper } from 'lucide-react';
@@ -18,28 +19,49 @@ export default function Home() {
   const [engagementDeadlinePassed, setEngagementDeadlinePassed] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const weddingDate = getWeddingDate();
+  const router = useRouter();
   
   // Debug the wedding date
   useEffect(() => {
+    // Empty effect body, just for debugging
+    console.log("Wedding date:", weddingDate);
   }, [weddingDate]);
   
   const { guest } = useGuestContext();
   
+  // Set deadlines once on mount and then at regular intervals
   useEffect(() => {
-    setDeadlinePassed(isRsvpDeadlinePassed());
-    setEngagementDeadlinePassed(isEngagementRsvpDeadlinePassed());
-    
-    const interval = setInterval(() => {
+    // Initial check
+    const checkDeadlines = () => {
       setDeadlinePassed(isRsvpDeadlinePassed());
       setEngagementDeadlinePassed(isEngagementRsvpDeadlinePassed());
-    }, 60000);
+    };
     
+    // Run once immediately
+    checkDeadlines();
+    
+    // Set up interval
+    const interval = setInterval(checkDeadlines, 60000);
+    
+    // Clean up interval on unmount
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
   
+  // Handle RSVP navigation
+  const handleRsvpClick = useCallback((eventId: string) => {
+    if (!guest) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    // Force navigation with window.location instead of router
+    // Add guest name as a query parameter
+    window.location.href = `/rsvp/${eventId}?name=${encodeURIComponent(guest.fullName)}`;
+  }, [guest]);
+
   return (
     <main className="min-h-screen">
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden" id="home">
         <div className="absolute inset-0 bg-black/20 z-10" />
         <div 
           className="absolute inset-0 bg-cover bg-center"
@@ -67,7 +89,7 @@ export default function Home() {
       </section>
 
       <div className="main-content-wrapper">
-        <section className="content-section py-16">
+        <section className="content-section py-16" id="intro">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-windsong mb-2">Celebrating Our Love</h2>
@@ -240,6 +262,7 @@ export default function Home() {
                   deadlineMessage={engagementDeadlinePassed && !deadlinePassed ? "RSVP Closed for Engagement" : ""}
                   guest={guest}
                   onLoginClick={() => setShowLoginModal(true)}
+                  onRsvpClick={handleRsvpClick}
                   showLocation={!!guest}
                 />
               )}
@@ -254,6 +277,7 @@ export default function Home() {
                 disabled={deadlinePassed || !guest}
                 guest={guest}
                 onLoginClick={() => setShowLoginModal(true)}
+                onRsvpClick={handleRsvpClick}
                 showLocation={!!guest}
               />
               
@@ -267,6 +291,7 @@ export default function Home() {
                 disabled={deadlinePassed || !guest}
                 guest={guest}
                 onLoginClick={() => setShowLoginModal(true)}
+                onRsvpClick={handleRsvpClick}
                 showLocation={!!guest}
               />
             </div>
@@ -342,6 +367,7 @@ function EventCard({
   deadlineMessage = "",
   guest,
   onLoginClick,
+  onRsvpClick,
   showLocation = true
 }: { 
   title: string; 
@@ -354,6 +380,7 @@ function EventCard({
   deadlineMessage?: string;
   guest?: any;
   onLoginClick?: () => void;
+  onRsvpClick?: (eventId: string) => void;
   showLocation?: boolean;
 }) {
   return (
@@ -389,20 +416,20 @@ function EventCard({
             
             <div className="mt-4">
               {guest ? (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  disabled={disabled}
-                >
-                  {disabled ? (
-                    <span>{deadlineMessage || "RSVP Closed"}</span>
-                  ) : (
-                    <Link href={`/rsvp/${eventId}?name=${encodeURIComponent(guest.fullName)}`}>
-                      RSVP for this event
-                    </Link>
-                  )}
-                </Button>
+                disabled ? (
+                  <div className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm text-center w-full opacity-50">
+                    {deadlineMessage || "RSVP Closed"}
+                  </div>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => onRsvpClick?.(eventId)}
+                  >
+                    RSVP for this event
+                  </Button>
+                )
               ) : (
                 <Button 
                   variant="outline" 

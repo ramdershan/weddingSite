@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { getWeddingDate } from '@/lib/utils';
 import { GuestProvider } from '@/context/guest-context';
 import { UserNav } from '@/components/user-nav';
+import { NavLink } from '@/components/nav-link';
+import Script from 'next/script';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -53,7 +55,7 @@ export default function RootLayout({
                   </Link>
                   
                   <nav className="hidden md:flex items-center space-x-8">
-                    <NavLink href="/">Home</NavLink>
+                    <NavLink href="/#home">Home</NavLink>
                     <NavLink href="/#our-story">Our Story</NavLink>
                     <NavLink href="/#timeline">Details</NavLink>
                     <NavLink href="/#rsvp">RSVP</NavLink>
@@ -68,18 +70,10 @@ export default function RootLayout({
             {children}
           </GuestProvider>
         </ThemeProvider>
+        
+        {/* Add the script for smooth scrolling */}
+        <Script src="/js/scroll-to-section.js" strategy="afterInteractive" />
       </body>
     </html>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link 
-      href={href} 
-      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-    >
-      {children}
-    </Link>
   );
 }
