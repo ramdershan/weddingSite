@@ -18,5 +18,7 @@ export function isEngagementRsvpDeadlinePassed(): boolean {
 }
 
 export function getWeddingDate(): Date {
-  return new Date('2026-01-24T13:00:00'); // 1:00 PM on January 24th, 2026
+  // Use a date that is definitely in the future
+  const weddingDate = new Date('2026-01-24T13:00:00'); // 1:00 PM on January 24th, 2026
+  return weddingDate;
 }

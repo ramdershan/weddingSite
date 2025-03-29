@@ -11,12 +11,18 @@ import { CountdownTimer } from '@/components/countdown-timer';
 import { getWeddingDate, isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed } from '@/lib/utils';
 import { LoginModal } from '@/components/login-modal';
 import { useGuestContext } from '@/context/guest-context';
+import { RingIcon } from '@/components/icons/ring-icon';
 
 export default function Home() {
   const [deadlinePassed, setDeadlinePassed] = useState(false);
   const [engagementDeadlinePassed, setEngagementDeadlinePassed] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const weddingDate = getWeddingDate();
+  
+  // Debug the wedding date
+  useEffect(() => {
+  }, [weddingDate]);
+  
   const { guest } = useGuestContext();
   
   useEffect(() => {
@@ -228,7 +234,7 @@ export default function Home() {
                   date="September 27, 2025" 
                   time="5:30 PM - Late" 
                   location="ACCA Banquet Hall, Edmonton, AB"
-                  icon={<img src="/ring_icon.png" alt="Ring" className="h-6 w-6" />}
+                  icon={<RingIcon className="h-5 w-5 text-primary" />}
                   eventId="engagement"
                   disabled={engagementDeadlinePassed || deadlinePassed || !guest}
                   deadlineMessage={engagementDeadlinePassed && !deadlinePassed ? "RSVP Closed for Engagement" : ""}

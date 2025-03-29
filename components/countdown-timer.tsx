@@ -15,6 +15,11 @@ export function CountdownTimer({
   showLabels = true,
   compact = false
 }: CountdownTimerProps) {
+  // Ensure targetDate is always treated as a Date object
+  const targetDateObj = new Date(targetDate);
+  
+  // State for client-side rendering detection
+  const [isClient, setIsClient] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -23,20 +28,44 @@ export function CountdownTimer({
     isPast: false
   });
 
+  // Set isClient to true when component mounts
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Calculate time remaining
+  useEffect(() => {
+    // Only run on the client
+    if (!isClient) return;
+    
+    console.log('Target date received:', targetDate);
+    console.log('Target date as string:', targetDateObj.toString());
+    console.log('Target timestamp:', targetDateObj.getTime());
+    console.log('Current time:', new Date().toString());
+    console.log('Time difference (ms):', targetDateObj.getTime() - new Date().getTime());
+    
     const calculateTimeLeft = () => {
-      const difference = targetDate.getTime() - new Date().getTime();
+      const now = new Date();
+      const difference = targetDateObj.getTime() - now.getTime();
       const isPast = difference <= 0;
       
       if (isPast) {
+        console.log('Event is in the past');
         return { days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true };
       }
       
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((difference / 1000 / 60) % 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+      
+      console.log(`Time left: ${days}d ${hours}h ${minutes}m ${seconds}s`);
+      
       return {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60),
+        days,
+        hours,
+        minutes,
+        seconds,
         isPast: false
       };
     };
@@ -50,8 +79,33 @@ export function CountdownTimer({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [isClient, targetDate, targetDateObj]);
 
+  // Server-side and initial client render
+  if (!isClient) {
+    return (
+      <div className={`grid grid-cols-4 gap-2 md:gap-4 ${className}`}>
+        <div className="bg-card rounded-lg p-2 md:p-4 shadow-sm border border-border text-center">
+          <div className="text-xl md:text-3xl font-semibold mb-1 text-red-0">00</div>
+          {showLabels && <div className="text-xs md:text-sm text-muted-foreground">Days</div>}
+        </div>
+        <div className="bg-card rounded-lg p-2 md:p-4 shadow-sm border border-border text-center">
+          <div className="text-xl md:text-3xl font-semibold mb-1 text-red-0">00</div>
+          {showLabels && <div className="text-xs md:text-sm text-muted-foreground">Hours</div>}
+        </div>
+        <div className="bg-card rounded-lg p-2 md:p-4 shadow-sm border border-border text-center">
+          <div className="text-xl md:text-3xl font-semibold mb-1 text-red-0">00</div>
+          {showLabels && <div className="text-xs md:text-sm text-muted-foreground">Minutes</div>}
+        </div>
+        <div className="bg-card rounded-lg p-2 md:p-4 shadow-sm border border-border text-center">
+          <div className="text-xl md:text-3xl font-semibold mb-1 text-red-0">00</div>
+          {showLabels && <div className="text-xs md:text-sm text-muted-foreground">Seconds</div>}
+        </div>
+      </div>
+    );
+  }
+
+  // Client-side rendering
   if (compact) {
     return (
       <div className={`flex items-center space-x-2 ${className}`}>
