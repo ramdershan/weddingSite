@@ -21,15 +21,23 @@ A beautiful, responsive wedding website built with Next.js and Tailwind CSS to c
 Before you begin, ensure you have the following installed:
 
 - **Node.js** (v18.17 or later)
+  - [Download from nodejs.org](https://nodejs.org/en/download/)
+  - [Using a package manager](https://nodejs.org/en/download/package-manager/)
+  - [Using nvm (recommended)](https://github.com/nvm-sh/nvm#installing-and-updating)
+  
+  Verify installation:
   ```bash
-  # Verify installation
   node --version
   npm --version
   ```
 
 - **Git** (for cloning the repository)
+  - [Download for Windows](https://git-scm.com/download/win)
+  - [Download for macOS](https://git-scm.com/download/mac)
+  - [Download for Linux/Unix](https://git-scm.com/download/linux)
+  
+  Verify installation:
   ```bash
-  # Verify installation
   git --version
   ```
 
@@ -44,6 +52,10 @@ Before you begin, ensure you have the following installed:
 2. **Install dependencies**
    ```bash
    npm install
+   # or
+   yarn install
+   # or
+   pnpm install
    ```
 
 3. **Configure dates**
@@ -68,6 +80,10 @@ Before you begin, ensure you have the following installed:
 4. **Run the development server**
    ```bash
    npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
    ```
 
 5. **Open your browser**
@@ -86,7 +102,8 @@ weddingSite/
 ├── components/             # React components
 │   ├── icons/              # Custom icons
 │   └── ui/                 # UI components
-└── lib/                    # Utility functions
+├── lib/                    # Utility functions
+└── public/                 # Static files accessible from the web
 ```
 
 ## 📋 Available Scripts
@@ -98,10 +115,31 @@ weddingSite/
 
 ## 🛠️ Built With
 
-- [Next.js](https://nextjs.org/) - React framework
+- [Next.js](https://nextjs.org/) - React framework for production
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 - [TypeScript](https://www.typescriptlang.org/) - Typed JavaScript
 - [Lucide Icons](https://lucide.dev/) - Beautiful open source icons
+- [shadcn/ui](https://ui.shadcn.com/) - Re-usable components built with Radix UI and Tailwind
+
+## 🚀 Deployment
+
+The site can be deployed to various platforms:
+
+- [Vercel](https://vercel.com/docs/frameworks/nextjs) (recommended for Next.js)
+- [Netlify](https://docs.netlify.com/frameworks/next-js/)
+- [AWS Amplify](https://docs.amplify.aws/gen1/guides/hosting/nextjs/)
+
+For detailed deployment instructions, check the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying).
+
+## 🧩 Customization
+
+### Adding new pages
+
+Create new pages by adding files to the `app` directory. For more information, refer to the [Next.js documentation](https://nextjs.org/docs/app/building-your-application/routing).
+
+### Styling
+
+This project uses Tailwind CSS for styling. You can customize the theme in the `tailwind.config.js` file. For more information, refer to the [Tailwind CSS documentation](https://tailwindcss.com/docs/configuration).
 
 ## 👥 Contributing
 
