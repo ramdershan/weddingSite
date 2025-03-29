@@ -98,7 +98,7 @@
 }
 
 .main-content-wrapper {
-  background-image: url('public/wedding-bg.jpg');
+  background-image: url('public/wedding-bg-1920.jpg');
   background-size: 100% 100%;
   background-position: top center;
   background-repeat: no-repeat;
@@ -106,6 +106,48 @@
   min-height: calc(100vh - 100vh);
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 1920px) {
+  .main-content-wrapper {
+    background-image: url('public/wedding-bg-1440.jpg');
+  }
+}
+
+@media (max-width: 1440px) {
+  .main-content-wrapper {
+    background-image: url('public/wedding-bg-1200.jpg');
+  }
+}
+
+@media (max-width: 1200px) {
+  .main-content-wrapper {
+    background-image: url('public/wedding-bg-1024.jpg');
+  }
+}
+
+@media (max-width: 1024px) {
+  .main-content-wrapper {
+    background-image: url('public/wedding-bg-960.jpg');
+  }
+}
+
+@media (max-width: 960px) {
+  .main-content-wrapper {
+    background-image: url('public/wedding-bg-768.jpg');
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content-wrapper {
+    background-image: url('public/wedding-bg-480.jpg');
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content-wrapper {
+    background-image: url('public/wedding-bg-320.jpg');
+  }
 }
 
 .main-content-wrapper::before {
