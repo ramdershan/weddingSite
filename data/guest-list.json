@@ -1,7 +1,29 @@
 {
   "John Smith": {
     "fullName": "John Smith",
-    "responded": false
+    "responded": true,
+    "eventResponses": {
+      "engagement": {
+        "response": "Yes",
+        "dietaryRestrictions": "",
+        "plusOne": false,
+        "plusOneCount": 0,
+        "adultCount": 0,
+        "childrenCount": 0,
+        "respondedAt": "2025-04-03T19:19:17.006Z",
+        "updatedAt": "2025-04-03T19:25:06.150Z"
+      },
+      "wedding": {
+        "response": "Yes",
+        "dietaryRestrictions": "",
+        "plusOne": false,
+        "plusOneCount": 0,
+        "adultCount": 0,
+        "childrenCount": 0,
+        "respondedAt": "2025-04-03T19:27:29.643Z",
+        "updatedAt": "2025-04-03T19:27:29.643Z"
+      }
+    }
   },
   "Jane Doe": {
     "fullName": "Jane Doe",

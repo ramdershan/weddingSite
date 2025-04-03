@@ -92,8 +92,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     if (nameFromUrl) {
       autoLoginWithName(nameFromUrl);
     } else {
-      // No guest and no name in URL, show login modal
-      setShowLoginModal(true);
+      // No guest and no name in URL, just stop loading (don't show modal)
+      setIsLoading(false);
     }
   }, [eventId, eventDetails, guest, searchParams]);
   
@@ -150,12 +150,12 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         setGuest(data.guest);
         // Guest is now set, useEffect will call fetchGuestData
       } else {
-        // Auto-login failed, show login modal
-        setShowLoginModal(true);
+        // Auto-login failed, just stop loading
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Error auto-logging in with name from URL:", error);
-      setShowLoginModal(true);
+      setIsLoading(false);
     }
   };
   
@@ -447,9 +447,6 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         isOpen={showLoginModal} 
         onClose={() => {
           setShowLoginModal(false);
-          if (!guest) {
-            router.push('/');
-          }
         }} 
       />
     </main>
