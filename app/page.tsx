@@ -130,96 +130,104 @@ export default function Home() {
           </div>
           
           <div className="max-w-4xl mx-auto">
-            <div className="space-y-12">
-              <div className="relative pl-8 md:pl-0">
-                <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                  <div className="md:text-right md:pr-8 relative">
-                    <div className="absolute left-[-8px] md:right-[-8px] md:left-auto top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                    <h3 className="text-xl font-serif mb-2">Engagement Ceremony</h3>
-                    <p className="text-muted-foreground">September 27, 2025</p>
-                  </div>
-                  <div className="mt-4 md:mt-0 md:pl-8">
-                    <p className="text-muted-foreground">
-                      Join us for our traditional engagement ceremony at ACCA Banquet Hall. 
-                      Get ready for an evening full of laughter, performances, and of course, dance!
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative pl-8 md:pl-0">
-                <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                  <div className="md:text-right md:pr-8 relative">
-                    <div className="absolute left-[-8px] md:right-[-8px] md:left-auto top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                    <h3 className="text-xl font-serif mb-2">Mehndi</h3>
-                    <p className="text-muted-foreground">January 22, 2026</p>
-                  </div>
-                  <div className="mt-4 md:mt-0 md:pl-8">
-                    <p className="text-muted-foreground">
-                      Experience the beautiful tradition of Mehndi as intricate designs adorn the bride and guests.
-                    </p>
+            <div className="relative">
+              <div className="space-y-10 md:space-y-12">
+                <div className="relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
+                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
+                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
+                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Engagement Ceremony</h3>
+                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">September 27, 2025</p>
+                    </div>
+                    <div className="pl-10 md:mt-0 md:pl-8">
+                      <p className="text-muted-foreground text-sm md:text-base">
+                        Join us for our traditional engagement ceremony at ACCA Banquet Hall. 
+                        Get ready for an evening full of laughter, performances, and of course, dance!
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="relative pl-8 md:pl-0">
-                <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                  <div className="md:text-right md:pr-8 relative">
-                    <div className="absolute left-[-8px] md:right-[-8px] md:left-auto top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                    <h3 className="text-xl font-serif mb-2">Haldi</h3>
-                    <p className="text-muted-foreground">January 23, 2026</p>
-                  </div>
-                  <div className="mt-4 md:mt-0 md:pl-8">
-                    <p className="text-muted-foreground">
-                      Join us for the auspicious Haldi ceremony where turmeric paste is applied to bless the couple. 
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative pl-8 md:pl-0">
-                <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                  <div className="md:text-right md:pr-8 relative">
-                      <div className="absolute left-[-8px] md:right-[-8px] md:left-auto top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                    <h3 className="text-xl font-serif mb-2">Sangeet</h3>
-                    <p className="text-muted-foreground">January 23, 2026</p>
-                  </div>
-                  <div className="mt-4 md:mt-0 md:pl-8">
-                    <p className="text-muted-foreground">
-                      Celebrate with us during an evening filled with music, dance, and festivities.
-                    </p>
+                
+                <div className="relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
+                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
+                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
+                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Mehndi</h3>
+                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 22, 2026</p>
+                    </div>
+                    <div className="pl-10 md:mt-0 md:pl-8">
+                      <p className="text-muted-foreground text-sm md:text-base">
+                        Experience the beautiful tradition of Mehndi as intricate designs adorn the bride and guests.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="relative pl-8 md:pl-0">
-                <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                  <div className="md:text-right md:pr-8 relative">
-                    <div className="absolute left-[-8px] md:right-[-8px] md:left-auto top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                    <h3 className="text-xl font-serif mb-2">Wedding Ceremony</h3>
-                    <p className="text-muted-foreground">January 24, 2026</p>
-                  </div>
-                  <div className="mt-4 md:mt-0 md:pl-8">
-                    <p className="text-muted-foreground">
-                      Witness our beautiful wedding ceremony and come give us your blessings. 
-                      The ceremony will be a blend of our cultures...
-                    </p>
+                
+                <div className="relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
+                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
+                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
+                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Haldi</h3>
+                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 23, 2026</p>
+                    </div>
+                    <div className="pl-10 md:mt-0 md:pl-8">
+                      <p className="text-muted-foreground text-sm md:text-base">
+                        Join us for the auspicious Haldi ceremony where turmeric paste is applied to bless the couple. 
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="relative pl-8 md:pl-0">
-                <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                  <div className="md:text-right md:pr-8 relative">
-                    <div className="absolute left-[-8px] md:right-[-8px] md:left-auto top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                    <h3 className="text-xl font-serif mb-2">Reception</h3>
-                    <p className="text-muted-foreground">January 28, 2026</p>
+                
+                <div className="relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
+                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
+                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
+                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Sangeet</h3>
+                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 23, 2026</p>
+                    </div>
+                    <div className="pl-10 md:mt-0 md:pl-8">
+                      <p className="text-muted-foreground text-sm md:text-base">
+                        Celebrate with us during an evening filled with music, dance, and festivities.
+                      </p>
+                    </div>
                   </div>
-                  <div className="mt-4 md:mt-0 md:pl-8">
-                    <p className="text-muted-foreground">
-                      Celebrate with us at our evening reception in the Grand Pavilion. 
-                      Enjoy dinner, dancing, and making memories together.
-                    </p>
+                </div>
+                
+                <div className="relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
+                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
+                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
+                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Wedding Ceremony</h3>
+                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 24, 2026</p>
+                    </div>
+                    <div className="pl-10 md:mt-0 md:pl-8">
+                      <p className="text-muted-foreground text-sm md:text-base">
+                        Witness our beautiful wedding ceremony and come give us your blessings. 
+                        The ceremony will be a blend of our cultures...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
+                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
+                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
+                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Reception</h3>
+                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 28, 2026</p>
+                    </div>
+                    <div className="pl-10 md:mt-0 md:pl-8">
+                      <p className="text-muted-foreground text-sm md:text-base">
+                        Celebrate with us at our evening reception in the Grand Pavilion. 
+                        Enjoy dinner, dancing, and making memories together.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

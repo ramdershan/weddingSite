@@ -15,6 +15,7 @@ import { Loader2, CheckCircle, Calendar, Clock, MapPin, AlertTriangle } from 'lu
 import { isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed } from '@/lib/utils';
 import { useGuestContext } from '@/context/guest-context';
 import { LoginModal } from '@/components/login-modal';
+import { LoadingScreen } from '@/components/loading-screen';
 
 // Event details mapping
 const EVENT_DETAILS = {
@@ -222,12 +223,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     return null; // Will redirect in useEffect
   }
   
-  if (isLoading && guest) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingScreen />;
   }
   
   if (deadlinePassed) {
@@ -258,7 +255,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   }
   
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4 pt-24">
+    <main className="min-h-screen bg-[#f4d6c1] from-background to-muted flex flex-col items-center justify-center p-4 pt-24">
       <div className="max-w-md w-full mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold tracking-tight mb-2">Yukti & Ram</h1>
@@ -266,7 +263,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           <div className="mt-4 h-px bg-border w-1/2 mx-auto" />
         </div>
         
-        <Card className="p-6 shadow-lg">
+        <Card className="p-6 shadow-lg bg-[#f6f2e7]">
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-xl font-semibold">{eventDetails.title} RSVP</h2>
