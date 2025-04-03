@@ -10,7 +10,7 @@ export function PhotoGallerySection() {
   };
 
   return (
-    <section className="content-section py-20" id="photos">
+    <section className="content-section py-20 bg-[#f6f2e7]" id="photos">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-windsong mb-2">Photo Gallery</h2>
