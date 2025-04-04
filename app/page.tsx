@@ -13,13 +13,106 @@ import { getWeddingDate, isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed } 
 import { LoginModal } from '@/components/login-modal';
 import { useGuestContext } from '@/context/guest-context';
 import { RingIcon } from '@/components/icons/ring-icon';
+import { LoadingScreen } from '@/components/loading-screen';
+
+// Define EventCard component outside of Home
+function EventCard({ 
+  title, 
+  date, 
+  time, 
+  location, 
+  icon,
+  eventId,
+  disabled = false,
+  deadlineMessage = "",
+  guest,
+  onLoginClick,
+  onRsvpClick,
+  showLocation = true
+}: { 
+  title: string; 
+  date: string; 
+  time: string; 
+  location: string; 
+  icon: React.ReactNode;
+  eventId: string;
+  disabled?: boolean;
+  deadlineMessage?: string;
+  guest?: any;
+  onLoginClick?: () => void;
+  onRsvpClick?: (eventId: string) => void;
+  showLocation?: boolean;
+}) {
+  return (
+    <Card className={`overflow-hidden ${disabled ? 'opacity-70' : ''}`}>
+      <CardContent className="p-6">
+        <div className="flex items-start">
+          <div className="mr-4 mt-1">
+            {icon}
+          </div>
+          <div>
+            <h3 className="font-medium text-lg mb-2">{title}</h3>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2" />
+                <span>{date}</span>
+              </div>
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 mr-2" />
+                <span>{time}</span>
+              </div>
+              {showLocation ? (
+                <div className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <span>{location}</span>
+                </div>
+              ) : (
+                <div className="flex items-center text-blue-600">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <span>Sign in to view location</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="mt-4">
+              {guest ? (
+                disabled ? (
+                  <div className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm text-center w-full opacity-50">
+                    {deadlineMessage || "RSVP Closed"}
+                  </div>
+                ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                    onClick={() => onRsvpClick?.(eventId)}
+                >
+                      RSVP for this event
+                </Button>
+                )
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={onLoginClick}
+                >
+                  Sign in to RSVP
+                </Button>
+              )}
+            </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Home() {
   const [deadlinePassed, setDeadlinePassed] = useState(false);
   const [engagementDeadlinePassed, setEngagementDeadlinePassed] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const weddingDate = getWeddingDate();
-  const { guest } = useGuestContext();
+  const { guest, isLoading } = useGuestContext();
   
   useEffect(() => {
     setDeadlinePassed(isRsvpDeadlinePassed());
@@ -44,6 +137,10 @@ export default function Home() {
     // Add guest name as a query parameter
     window.location.href = `/rsvp/${eventId}?name=${encodeURIComponent(guest.fullName)}`;
   }, [guest]);
+  
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
   
   return (
     <main className="min-h-screen">
@@ -250,13 +347,13 @@ export default function Home() {
                 date="September 27, 2025" 
                 time="5:30 PM - Late" 
                 location="ACCA Banquet Hall, Edmonton, AB"
-                  icon={<RingIcon className="h-5 w-5 text-primary" />}
+                icon={<RingIcon className="h-5 w-5 text-primary" />}
                 eventId="engagement"
                 disabled={engagementDeadlinePassed || deadlinePassed || !guest}
                 deadlineMessage={engagementDeadlinePassed && !deadlinePassed ? "RSVP Closed for Engagement" : ""}
                 guest={guest}
                 onLoginClick={() => setShowLoginModal(true)}
-                  onRsvpClick={handleRsvpClick}
+                onRsvpClick={handleRsvpClick}
                 showLocation={!!guest}
               />
             )}
@@ -271,7 +368,7 @@ export default function Home() {
               disabled={deadlinePassed || !guest}
               guest={guest}
               onLoginClick={() => setShowLoginModal(true)}
-                onRsvpClick={handleRsvpClick}
+              onRsvpClick={handleRsvpClick}
               showLocation={!!guest}
             />
             
@@ -285,7 +382,7 @@ export default function Home() {
               disabled={deadlinePassed || !guest}
               guest={guest}
               onLoginClick={() => setShowLoginModal(true)}
-                onRsvpClick={handleRsvpClick}
+              onRsvpClick={handleRsvpClick}
               showLocation={!!guest}
             />
           </div>
@@ -346,97 +443,5 @@ export default function Home() {
         onClose={() => setShowLoginModal(false)} 
       />
     </main>
-  );
-}
-
-function EventCard({ 
-  title, 
-  date, 
-  time, 
-  location, 
-  icon,
-  eventId,
-  disabled = false,
-  deadlineMessage = "",
-  guest,
-  onLoginClick,
-  onRsvpClick,
-  showLocation = true
-}: { 
-  title: string; 
-  date: string; 
-  time: string; 
-  location: string; 
-  icon: React.ReactNode;
-  eventId: string;
-  disabled?: boolean;
-  deadlineMessage?: string;
-  guest?: any;
-  onLoginClick?: () => void;
-  onRsvpClick?: (eventId: string) => void;
-  showLocation?: boolean;
-}) {
-  return (
-    <Card className={`overflow-hidden ${disabled ? 'opacity-70' : ''}`}>
-      <CardContent className="p-6">
-        <div className="flex items-start">
-          <div className="mr-4 mt-1">
-            {icon}
-          </div>
-          <div>
-            <h3 className="font-medium text-lg mb-2">{title}</h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2" />
-                <span>{date}</span>
-              </div>
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-2" />
-                <span>{time}</span>
-              </div>
-              {showLocation ? (
-                <div className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  <span>{location}</span>
-                </div>
-              ) : (
-                <div className="flex items-center text-blue-600">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  <span>Sign in to view location</span>
-                </div>
-              )}
-            </div>
-            
-            <div className="mt-4">
-              {guest ? (
-                disabled ? (
-                  <div className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm text-center w-full opacity-50">
-                    {deadlineMessage || "RSVP Closed"}
-                  </div>
-                ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                    onClick={() => onRsvpClick?.(eventId)}
-                >
-                      RSVP for this event
-                </Button>
-                )
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  onClick={onLoginClick}
-                >
-                  Sign in to RSVP
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

@@ -37,7 +37,7 @@ export function LoginModal({
       
       if (response.ok) {
         const data = await response.json();
-        setGuest(data.guest);
+        setGuest(data.guest, data.sessionToken);
         onClose();
       } else {
         const data = await response.json();

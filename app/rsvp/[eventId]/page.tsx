@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Guest } from '@/lib/types';
 import { Loader2, CheckCircle, Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
-import { isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed } from '@/lib/utils';
+import { isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed, navigateToHomeSection } from '@/lib/utils';
 import { useGuestContext } from '@/context/guest-context';
 import { LoginModal } from '@/components/login-modal';
 import { LoadingScreen } from '@/components/loading-screen';
@@ -59,6 +59,36 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [deadlinePassed, setDeadlinePassed] = useState<boolean>(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [needsLoginModal, setNeedsLoginModal] = useState<boolean>(false);
+  const [minimumLoadingComplete, setMinimumLoadingComplete] = useState<boolean>(false);
+  const [dataLoadingComplete, setDataLoadingComplete] = useState<boolean>(false);
+  
+  // Set a minimum loading time of 2.5 seconds
+  useEffect(() => {
+    // Start the minimum loading timer
+    const timer = setTimeout(() => {
+      setMinimumLoadingComplete(true);
+    }, 2500);
+    
+    // Clean up the timer if component unmounts
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Only stop loading when both minimum time has passed and data is ready
+  useEffect(() => {
+    if (minimumLoadingComplete && dataLoadingComplete) {
+      setIsLoading(false);
+      
+      // Only show login modal after minimum loading time has passed
+      // And only if we need to show it (no guest and needsLoginModal is true)
+      if (!guest && needsLoginModal) {
+        // Slight delay to ensure smooth transition from loading screen to modal
+        setTimeout(() => {
+          setShowLoginModal(true);
+        }, 100);
+      }
+    }
+  }, [minimumLoadingComplete, dataLoadingComplete, guest, needsLoginModal]);
   
   useEffect(() => {
     // Check if RSVP deadline has passed
@@ -79,11 +109,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     
     // If guest is already logged in, proceed without showing modal
     if (guest) {
-      // If URL name matches the logged in guest, we can pre-fill the form immediately
-      // This improves perceived performance while we wait for the async data
-      if (nameFromUrl && nameFromUrl.toLowerCase() === guest.fullName.toLowerCase()) {
-        setIsLoading(false);
-      }
+      // Even if we have the guest data, we still want to show loading for the minimum time
       fetchGuestData();
       return;
     }
@@ -92,8 +118,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     if (nameFromUrl) {
       autoLoginWithName(nameFromUrl);
     } else {
-      // No guest and no name in URL, just stop loading (don't show modal)
-      setIsLoading(false);
+      // No guest and no name in URL, flag that we need to show login modal
+      // But don't actually show it yet - we'll wait for minimum loading time
+      setNeedsLoginModal(true);
+      setDataLoadingComplete(true); // No data to load in this case
     }
   }, [eventId, eventDetails, guest, searchParams]);
   
@@ -101,14 +129,6 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     if (!guest) return;
     
     try {
-      // If guest is already present, we can assume they're valid
-      // and immediately start showing the form while we fetch data in the background
-      if (!isLoading) {
-        // Form is already showing, just fetch data in background
-      } else {
-        setIsLoading(true);
-      }
-      
       // Pre-fill form if guest has already responded to this event
       if (guest.responded && guest.eventResponses && guest.eventResponses[eventId]) {
         const eventResponse = guest.eventResponses[eventId];
@@ -136,7 +156,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      // Mark data loading as complete, but actual display will depend on minimumLoadingComplete
+      setDataLoadingComplete(true);
     }
   };
   
@@ -150,12 +171,14 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         setGuest(data.guest);
         // Guest is now set, useEffect will call fetchGuestData
       } else {
-        // Auto-login failed, just stop loading
-        setIsLoading(false);
+        // Auto-login failed, show login modal
+        setNeedsLoginModal(true);
+        setDataLoadingComplete(true); // No further data loading needed
       }
     } catch (error) {
       console.error("Error auto-logging in with name from URL:", error);
-      setIsLoading(false);
+      setNeedsLoginModal(true);
+      setDataLoadingComplete(true); // No further data loading needed
     }
   };
   
@@ -163,7 +186,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     e.preventDefault();
     
     if (!guest) {
-      setShowLoginModal(true);
+      setNeedsLoginModal(true);
       return;
     }
     
@@ -290,7 +313,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                 <h3 className="text-lg font-medium">Please Sign In</h3>
                 <p>You need to sign in to RSVP for this event.</p>
                 <Button 
-                  onClick={() => setShowLoginModal(true)}
+                  onClick={() => setNeedsLoginModal(true)}
                   className="mt-2"
                 >
                   Sign In
@@ -313,7 +336,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                     Edit Response
                   </Button>
                   <Button 
-                    onClick={() => router.push('/')}
+                    onClick={() => navigateToHomeSection('rsvp')}
                     variant="ghost"
                     className="mt-2"
                   >
@@ -426,7 +449,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                   <Button 
                     type="button" 
                     variant="ghost" 
-                    onClick={() => router.push('/')}
+                    onClick={() => navigateToHomeSection('rsvp')}
                   >
                     Return to Home
                   </Button>
@@ -447,6 +470,11 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         isOpen={showLoginModal} 
         onClose={() => {
           setShowLoginModal(false);
+          // Also reset the needs login modal flag
+          setNeedsLoginModal(false);
+          if (!guest) {
+            router.push('/');
+          }
         }} 
       />
     </main>

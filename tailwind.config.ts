@@ -82,13 +82,64 @@ const config: Config = {
             height: '0',
           },
         },
+        'spinSlow': {
+          to: {
+            transform: 'rotate(360deg)',
+          },
+        },
+        'fadeIn': {
+          from: {
+            opacity: '0',
+          },
+          to: {
+            opacity: '1',
+          },
+        },
+        'fadeInUp': {
+          from: {
+            opacity: '0',
+            transform: 'translateY(10px)',
+          },
+          to: {
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'spinSlow': 'spinSlow 3s linear infinite',
+        'fadeIn': 'fadeIn 0.6s ease-out forwards',
+        'fadeInUp': 'fadeInUp 0.6s ease-out forwards',
+      },
+      animationDelay: {
+        '300': '300ms',
+        '500': '500ms',
+        '700': '700ms',
+        '1000': '1000ms',
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    function({ addUtilities }: { addUtilities: Function }) {
+      const newUtilities = {
+        '.animation-delay-300': {
+          'animation-delay': '300ms',
+        },
+        '.animation-delay-500': {
+          'animation-delay': '500ms',
+        },
+        '.animation-delay-700': {
+          'animation-delay': '700ms',
+        },
+        '.animation-delay-1000': {
+          'animation-delay': '1000ms',
+        },
+      }
+      addUtilities(newUtilities)
+    }
+  ],
 };
 export default config;

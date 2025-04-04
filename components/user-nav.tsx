@@ -70,10 +70,8 @@ export function UserNav() {
               clearGuest();
               setOpen(false);
               
-              // If on an RSVP page, redirect to home after logout
-              if (isOnRsvpPage) {
-                router.push('/');
-              }
+              // The redirect is now handled in the clearGuest function
+              // No need for conditional redirect here anymore
             }}
           >
             <LogOut className="mr-2 h-4 w-4" />

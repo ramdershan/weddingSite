@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { navigateToHomeSection } from '@/lib/utils';
 
 interface NavLinkProps {
   href: string;
@@ -27,25 +28,9 @@ export function NavLink({ href, children, className = "" }: NavLinkProps) {
       e.preventDefault();
       
       const targetId = href.split('#')[1];
-      const targetElement = document.getElementById(targetId);
-      
-      if (targetElement) {
-        // Get header height
-        const header = document.querySelector('header');
-        const headerHeight = header ? header.offsetHeight : 0;
-        
-        // Calculate position with offset
-        const elementPosition = targetElement.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerHeight - 20;
-        
-        // Scroll
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-        
-        // Update URL without page refresh
-        history.pushState(null, '', '#' + targetId);
+      if (targetId) {
+        // Use our utility function instead of manual scrolling
+        navigateToHomeSection(targetId);
       }
     } else {
       // Normal navigation for non-anchor links
@@ -59,6 +44,7 @@ export function NavLink({ href, children, className = "" }: NavLinkProps) {
       onClick={handleClick}
       className={`text-muted-foreground hover:text-foreground transition-colors ${className}`}
       scroll={false}
+      data-react-link="true"
     >
       {children}
     </Link>

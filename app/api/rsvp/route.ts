@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateGuestEventResponse, isApprovedGuest } from '@/lib/data';
+import { updateGuestEventResponse } from '@/lib/data';
+import { validateGuestSession } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,9 +15,30 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (!isApprovedGuest(fullName)) {
+    // Check session token from cookie or request body
+    const sessionToken = request.cookies.get('guest_session')?.value;
+    
+    if (!sessionToken) {
       return NextResponse.json(
-        { error: 'Guest not found in approved list' },
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
+    // Validate the session token
+    const supabaseGuest = await validateGuestSession(sessionToken);
+    
+    if (!supabaseGuest) {
+      return NextResponse.json(
+        { error: 'Invalid or expired session' },
+        { status: 403 }
+      );
+    }
+    
+    // Verify that the guest name in the request matches the authenticated guest
+    if (supabaseGuest.full_name.toLowerCase() !== fullName.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Unauthorized to submit RSVP for this guest' },
         { status: 403 }
       );
     }
