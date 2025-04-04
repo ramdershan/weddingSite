@@ -85,7 +85,7 @@ function EventCard({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full shadow-sm hover:shadow-md transition-all"
+                  className="w-full shadow-sm hover:shadow-md transition-all hover:bg-[#741914] hover:text-white"
                     onClick={() => onRsvpClick?.(eventId)}
                 >
                       RSVP for this event
@@ -95,7 +95,7 @@ function EventCard({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full shadow-sm hover:shadow-md transition-all"
+                  className="w-full shadow-sm hover:shadow-md transition-all hover:bg-[#741914] hover:text-white"
                   onClick={onLoginClick}
                 >
                   Sign in to RSVP

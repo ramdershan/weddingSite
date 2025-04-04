@@ -281,8 +281,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     <main className="min-h-screen bg-[#f4d6c1] from-background to-muted flex flex-col items-center justify-center p-4 pt-24">
       <div className="max-w-md w-full mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Yukti & Ram</h1>
-          <p className="text-muted-foreground">We're excited to celebrate with you!</p>
+          <h1 className="text-5xl font-windsong tracking-tight mb-2">Yukti & Ram</h1>
+          <p className="text-gray-700">We're excited to celebrate with you!</p>
           <div className="mt-4 h-px bg-border w-1/2 mx-auto" />
         </div>
         
@@ -290,7 +290,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-xl font-semibold">{eventDetails.title} RSVP</h2>
-              {guest && <p className="text-muted-foreground mt-1">Hello, {guest.fullName}</p>}
+              {guest && <p className="text-gray-700 mt-1">Hello, {guest.fullName}</p>}
             </div>
             
             <div className="bg-muted/50 p-4 rounded-md space-y-2 text-sm">
