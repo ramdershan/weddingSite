@@ -51,11 +51,16 @@ export function NavLink({ href, children, className = "" }: NavLinkProps) {
     }
   };
   
+  // Determine if we should add default text styles or not
+  // We want to preserve font-windsong and other explicit classes from parent
+  const hasCustomFont = className.includes('font-');
+  const baseClasses = hasCustomFont ? '' : 'text-muted-foreground hover:text-foreground';
+  
   return (
     <Link 
       href={href} 
       onClick={handleClick}
-      className={`text-muted-foreground hover:text-foreground transition-colors ${className}`}
+      className={`transition-colors ${baseClasses} ${className}`}
       scroll={false}
       data-react-link="true"
     >
