@@ -1,9 +1,9 @@
 "use client";
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { navigateToHomeSection } from '@/lib/utils';
+import { navigateToHomeSection, scrollToSection } from '@/lib/utils';
 
 interface NavLinkProps {
   href: string;
@@ -13,6 +13,7 @@ interface NavLinkProps {
 
 export function NavLink({ href, children, className = "" }: NavLinkProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   
   useEffect(() => {
@@ -23,14 +24,26 @@ export function NavLink({ href, children, className = "" }: NavLinkProps) {
     // Only run on the client
     if (!isMounted) return;
     
-    // Only handle anchor links on the homepage
-    if (href.includes('#') && (window.location.pathname === '/' || window.location.pathname === '')) {
-      e.preventDefault();
-      
+    e.preventDefault();
+    
+    // Handle anchor links
+    if (href.includes('#')) {
       const targetId = href.split('#')[1];
-      if (targetId) {
-        // Use our utility function instead of manual scrolling
-        navigateToHomeSection(targetId);
+      
+      if (pathname === '/' || pathname === '') {
+        // If already on homepage, use our smooth scroll utility
+        if (targetId) {
+          // Prevent default hash behavior by updating URL without a scroll event
+          const scrollPosition = window.pageYOffset;
+          history.pushState(null, '', `/#${targetId}`);
+          window.scrollTo(window.pageXOffset, scrollPosition);
+          
+          // Then smoothly scroll to the section
+          scrollToSection(targetId);
+        }
+      } else {
+        // If on a different page, navigate to homepage with the section hash
+        router.push(`/${href.includes('#') ? href : ''}`);
       }
     } else {
       // Normal navigation for non-anchor links

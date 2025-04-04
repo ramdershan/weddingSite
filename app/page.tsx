@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, MapPin, Heart, Camera, PartyPopper, Diamond } from 'lucide-react';
 import { PhotoGallerySection } from '@/components/photo-gallery-section';
 import { CountdownTimer } from '@/components/countdown-timer';
-import { getWeddingDate, isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed } from '@/lib/utils';
+import { getWeddingDate, isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed, navigateToHomeSection, scrollToSection } from '@/lib/utils';
 import { LoginModal } from '@/components/login-modal';
 import { useGuestContext } from '@/context/guest-context';
 import { RingIcon } from '@/components/icons/ring-icon';
@@ -44,8 +44,8 @@ function EventCard({
   showLocation?: boolean;
 }) {
   return (
-    <Card className={`overflow-hidden ${disabled ? 'opacity-70' : ''}`}>
-      <CardContent className="p-6">
+    <Card className={`overflow-hidden shadow-md transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl ${disabled ? 'opacity-70' : ''}`}>
+      <CardContent className="p-6 relative z-10">
         <div className="flex items-start">
           <div className="mr-4 mt-1">
             {icon}
@@ -85,7 +85,7 @@ function EventCard({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full"
+                  className="w-full shadow-sm hover:shadow-md transition-all"
                     onClick={() => onRsvpClick?.(eventId)}
                 >
                       RSVP for this event
@@ -95,7 +95,7 @@ function EventCard({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full"
+                  className="w-full shadow-sm hover:shadow-md transition-all"
                   onClick={onLoginClick}
                 >
                   Sign in to RSVP
@@ -111,8 +111,33 @@ export default function Home() {
   const [deadlinePassed, setDeadlinePassed] = useState(false);
   const [engagementDeadlinePassed, setEngagementDeadlinePassed] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
   const weddingDate = getWeddingDate();
   const { guest, isLoading } = useGuestContext();
+  
+  // Handle URL hash navigation after page is loaded
+  useEffect(() => {
+    // Only run this effect after loading screen is gone and page is ready
+    if (!isLoading && !pageReady) {
+      setPageReady(true);
+      
+      // Check if there's a hash in the URL
+      if (typeof window !== 'undefined') {
+        const hash = window.location.hash;
+        if (hash) {
+          // Get the target section ID
+          const targetId = hash.replace('#', '');
+          if (targetId) {
+            // Use scrollToSection directly instead of navigateToHomeSection
+            // to avoid updating the hash again, which would cause a double-scroll
+            setTimeout(() => {
+              scrollToSection(targetId);
+            }, 100);
+          }
+        }
+      }
+    }
+  }, [isLoading, pageReady]);
   
   useEffect(() => {
     setDeadlinePassed(isRsvpDeadlinePassed());
@@ -199,7 +224,10 @@ export default function Home() {
                 <img 
                   src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80"
                   alt="Couple"
-                  className="rounded-lg shadow-lg"
+                  className="rounded-lg border border-white/10"
+                  style={{
+                    boxShadow: '0 0 30px rgba(0, 0, 0, 0.4)'
+                  }}
                 />
               </div>
               <div className="space-y-6">
