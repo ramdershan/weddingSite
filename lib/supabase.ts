@@ -45,10 +45,11 @@ export type GuestData = {
 
 export async function getGuestByName(name: string): Promise<SupabaseGuest | null> {
   try {
+    // Use case insensitive comparison with ilike
     const { data, error } = await supabaseAdmin
       .from('guests')
       .select('*')
-      .eq('full_name', name)
+      .ilike('full_name', name)
       .single();
 
     if (error) {

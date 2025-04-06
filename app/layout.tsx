@@ -8,6 +8,7 @@ import { GuestProvider } from '@/context/guest-context';
 import { UserNav } from '@/components/user-nav';
 import { NavLink } from '@/components/nav-link';
 import Script from 'next/script';
+import { headers } from 'next/headers';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -32,6 +33,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Get the current pathname from headers
+  const headersList = headers();
+  const pathname = headersList.get('x-pathname') || '';
+  const isGuestLoginPage = pathname.includes('/guest-login');
+  const isAdminPage = pathname.includes('/admin');
+  const shouldHideHeader = isGuestLoginPage || isAdminPage;
+
+  // Log the current pathname for debugging
+  console.log(`[Layout] Current pathname: ${pathname}`);
+
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cormorant.variable}`}>
       <head>
@@ -47,24 +58,27 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <GuestProvider>
-            <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border/40">
-              <div className="container mx-auto px-4">
-                <div className="flex items-center justify-between h-16">
-                  <NavLink href="/#home" className="font-windsong text-2xl">
-                    Yukti & Ram
-                  </NavLink>
-                  
-                  <nav className="hidden md:flex items-center space-x-8">
-                    <NavLink href="/#our-story">Our Story</NavLink>
-                    <NavLink href="/#timeline">Details</NavLink>
-                    <NavLink href="/#rsvp">RSVP</NavLink>
-                    <NavLink href="/#photos">Gallery</NavLink>
-                  </nav>
-                  
-                  <UserNav />
+            {/* Hide header on guest login page and admin pages */}
+            {!shouldHideHeader && (
+              <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border/40">
+                <div className="container mx-auto px-4">
+                  <div className="flex items-center justify-between h-16">
+                    <NavLink href="/#home" className="font-windsong text-2xl">
+                      Yukti & Ram
+                    </NavLink>
+                    
+                    <nav className="hidden md:flex items-center space-x-8">
+                      <NavLink href="/#our-story">Our Story</NavLink>
+                      <NavLink href="/#timeline">Details</NavLink>
+                      <NavLink href="/#rsvp">RSVP</NavLink>
+                      <NavLink href="/#photos">Gallery</NavLink>
+                    </nav>
+                    
+                    <UserNav />
+                  </div>
                 </div>
-              </div>
-            </header>
+              </header>
+            )}
             
             {children}
           </GuestProvider>

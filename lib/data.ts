@@ -305,8 +305,9 @@ export const isApprovedGuest = (fullName: string): boolean => {
 
 // Verify admin credentials
 export const verifyAdminCredentials = (username: string, password: string): boolean => {
+  console.log('[Admin Auth] Verifying credentials for username:', username);
   return ADMIN_USERS.some(
-    user => user.username === username && user.password === password
+    user => user.username.toLowerCase() === username.toLowerCase() && user.password === password
   );
 };
 

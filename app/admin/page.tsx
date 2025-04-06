@@ -162,10 +162,38 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/admin/logout', { method: 'POST' });
-      router.push('/admin/login');
+      console.log('[Admin] Initiating admin logout process');
+      const response = await fetch('/api/admin/logout', { 
+        method: 'POST',
+        credentials: 'include' // Ensure cookies are included
+      });
+      
+      if (response.ok) {
+        console.log('[Admin] Logout API call successful, redirecting...');
+        toast({
+          title: "Logged Out",
+          description: "You have been logged out successfully",
+        });
+        
+        // Force a hard redirect to the login page to ensure cookies are cleared from browser
+        setTimeout(() => {
+          window.location.href = '/admin/login?logged_out=true'; // Use location.href instead of router to force full page reload
+        }, 500);
+      } else {
+        console.error('[Admin] Logout failed:', await response.text());
+        toast({
+          title: "Logout Failed",
+          description: "There was a problem logging you out. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('[Admin] Logout error:', error);
+      toast({
+        title: "Logout Error",
+        description: "There was a problem logging you out. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -181,7 +209,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-muted/30 pt-16">
       <header className="bg-background border-b sticky top-16 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Wedding Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold">Your Wedding Admin Dashboard</h1>
           <div className="flex items-center gap-4">
             <Button 
               variant="outline" 

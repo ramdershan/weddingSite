@@ -157,14 +157,26 @@ export function GuestProvider({ children }: { children: ReactNode }) {
   }, [sessionToken, isLoaded]);
 
   const setGuest = (newGuest: Guest | null, newSessionToken?: string) => {
+    console.log('[Guest Context] setGuest called:', newGuest ? { name: newGuest.fullName } : 'null');
+    console.log('[Guest Context] Token provided:', newSessionToken ? `${newSessionToken.substring(0, 10)}...` : 'none');
+    
     setGuestState(newGuest);
     if (newSessionToken) {
+      console.log('[Guest Context] Setting sessionToken state');
       setSessionToken(newSessionToken);
+    } else {
+      console.log('[Guest Context] No new sessionToken provided');
+    }
+    
+    // Indicate we're no longer loading
+    if (isLoading) {
+      console.log('[Guest Context] Setting isLoading to false');
+      setIsLoading(false);
     }
   };
 
   const clearGuest = async () => {
-    setGuestState(null);
+    console.log('[Guest Context] Clearing guest session...');
     
     // Create and show overlay for logout animation
     let overlay: HTMLElement | null = null;
@@ -172,41 +184,64 @@ export function GuestProvider({ children }: { children: ReactNode }) {
       overlay = createLogoutOverlay();
     }
     
-    // If we have a session token, delete the session on the server
+    // Immediately clear localStorage to ensure clean state
+    localStorage.removeItem('wedding_guest');
+    localStorage.removeItem('wedding_guest_session');
+    
+    // Clear state after localStorage is cleared
+    setGuestState(null);
+    
+    // If we have a session token, delete the session from server
     if (sessionToken) {
       try {
+        // First clear session from Supabase
         await deleteGuestSession(sessionToken);
+        console.log('[Guest Context] Deleted guest session from database');
         
-        // Also make API call to clear cookie
-        await fetch('/api/auth/logout', {
+        // Then make API call to clear cookie
+        const response = await fetch('/api/auth/logout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           credentials: 'include',
         });
+        
+        if (response.ok) {
+          console.log('[Guest Context] Successfully cleared session cookies');
+        } else {
+          console.error('[Guest Context] Failed to clear session cookies:', await response.text());
+        }
       } catch (error) {
-        console.error('Error deleting guest session:', error);
+        console.error('[Guest Context] Error during logout process:', error);
       }
       
-      // Remove from local storage
-      localStorage.removeItem('wedding_guest_session');
       setSessionToken(null);
     }
     
-    // Remove guest data from local storage
-    localStorage.removeItem('wedding_guest');
-    
     // Delay redirect to allow animation to be visible for a pleasant amount of time
-    if (typeof window !== 'undefined') {
-      setTimeout(() => {
-        // Clean up the overlay element if it exists to prevent memory leaks
-        if (overlay && overlay.parentNode) {
-          overlay.parentNode.removeChild(overlay);
-        }
-        window.location.href = '/';
-      }, 1500); // Increased to 1.5 seconds to ensure message is seen
-    }
+    setTimeout(() => {
+      // Clean up the overlay element if it exists to prevent memory leaks
+      if (overlay && overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      
+      console.log('[Guest Context] Redirecting to guest-login page after logout');
+      
+      // Force a hard, synchronous page reload to guest-login
+      // This approach prevents any client-side interception
+      if (typeof window !== 'undefined') {
+        // Replace the current history entry rather than adding a new one
+        window.location.replace('/guest-login');
+        
+        // If for some reason the above didn't trigger immediate navigation,
+        // force reload the page which will then be redirected by middleware
+        setTimeout(() => {
+          console.log('[Guest Context] Forcing page reload as backup');
+          window.location.reload();
+        }, 300);
+      }
+    }, 1500);
   };
 
   return (

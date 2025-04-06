@@ -67,11 +67,14 @@ export function UserNav() {
           <DropdownMenuSeparator />
           <DropdownMenuItem 
             onClick={() => {
-              clearGuest();
+              // Close the dropdown first
               setOpen(false);
               
-              // The redirect is now handled in the clearGuest function
-              // No need for conditional redirect here anymore
+              // Log the logout attempt with the current pathname
+              console.log('[UserNav] Invoking clearGuest from UserNav on path:', pathname);
+              
+              // Call clearGuest directly - no timeout needed as clearGuest handles the animation timing
+              clearGuest();
             }}
           >
             <LogOut className="mr-2 h-4 w-4" />
