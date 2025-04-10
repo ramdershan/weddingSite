@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getGuestByName, createGuestSession, getGuestEvents } from '@/lib/supabase';
-import { getGuest } from '@/lib/data';
+import { getGuestByName, createGuestSession, getGuestEvents, getGuestResponses } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +31,8 @@ export async function GET(request: NextRequest) {
     // Get guest events from Supabase
     const { events, access } = await getGuestEvents(supabaseGuest.id);
     
-    // Get guest data from local storage if it exists
-    const guest = getGuest(fullName);
+    // Get guest responses from Supabase
+    const guestResponses = await getGuestResponses(supabaseGuest.id);
     
     // Create a new session for the guest
     const session = await createGuestSession(supabaseGuest.id);
@@ -78,12 +77,25 @@ export async function GET(request: NextRequest) {
     ).join(', ')}`);
     console.log(`[API] Events with RSVP access: ${rsvpEventCodes.join(', ')}`);
     
+    // Logging guest event responses if available
+    if (guestResponses && Object.keys(guestResponses).length > 0) {
+      console.log(`[API] Guest ${fullName} has responded to the following events:`, 
+        Object.keys(guestResponses).map(eventId => {
+          const response = guestResponses[eventId]?.response;
+          return `${eventId} (${response})`;
+        }).join(', ')
+      );
+    } else {
+      console.log(`[API] Guest ${fullName} has not responded to any events yet`);
+    }
+    
     // Prepare response with session token for client-side storage
     const response = NextResponse.json({ 
-      guest: guest || {
+      guest: {
         fullName: supabaseGuest.full_name,
-        responded: false,
-        invitedEvents: invitedEventCodes || ['engagement', 'wedding', 'reception']
+        responded: guestResponses !== null,
+        invitedEvents: invitedEventCodes || ['engagement', 'wedding', 'reception'],
+        ...(guestResponses ? { eventResponses: guestResponses } : {})
       },
       events: formattedEvents,
       sessionToken: session?.session_token

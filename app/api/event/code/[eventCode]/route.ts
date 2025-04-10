@@ -56,20 +56,19 @@ function formatTime(timeStr: string): string {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: { eventCode: string } }
 ) {
   try {
-    const { eventId } = params;
+    const { eventCode } = params;
 
-    if (!eventId) {
+    if (!eventCode) {
       return NextResponse.json(
-        { error: 'Event ID is required' },
+        { error: 'Event code is required' },
         { status: 400 }
       );
     }
 
-    // Since our endpoints use event code as the ID, we treat eventId as the code
-    const event = await getEventByCode(eventId);
+    const event = await getEventByCode(eventCode);
 
     if (!event) {
       return NextResponse.json(
@@ -90,14 +89,14 @@ export async function GET(
       maps_link: event.maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(event.location)}`,
       isParent: event.parent_event_id === null,
       parentEventId: event.parent_event_id,
-      canRsvp: true, // Default to true for public endpoint
+      canRsvp: true,
       rsvpDeadline: event.rsvp_deadline ? new Date(event.rsvp_deadline) : null,
       disabled: false
     };
 
     return NextResponse.json({ event: formattedEvent });
   } catch (error) {
-    console.error('Error fetching event:', error);
+    console.error('Error fetching event by code:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

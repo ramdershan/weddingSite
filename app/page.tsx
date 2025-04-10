@@ -29,7 +29,8 @@ function EventCard({
   onLoginClick,
   onRsvpClick,
   showLocation = true,
-  maps_link
+  maps_link,
+  hasResponded = false
 }: { 
   title: string; 
   date: string; 
@@ -44,6 +45,7 @@ function EventCard({
   onRsvpClick?: (eventId: string) => void;
   showLocation?: boolean;
   maps_link?: string;
+  hasResponded?: boolean;
 }) {
   return (
     <Card className={`overflow-hidden shadow-md transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl ${disabled ? 'opacity-70' : ''}`}>
@@ -97,7 +99,7 @@ function EventCard({
                   className="w-full shadow-sm hover:shadow-md transition-all hover:bg-[#741914] hover:text-white"
                     onClick={() => onRsvpClick?.(eventId)}
                 >
-                      RSVP for this event
+                  {hasResponded ? "Edit RSVP" : "RSVP for this event"}
                 </Button>
                 )
               ) : (
@@ -222,11 +224,15 @@ export default function Home() {
           const deadlineHasPassed = event.rsvpDeadline ? new Date() > new Date(event.rsvpDeadline) : false;
           const deadlineMessage = deadlineHasPassed ? "RSVP Deadline Passed" : "";
           
+          // Check if guest has already responded to this event
+          const hasResponded = guest?.eventResponses && guest.eventResponses[event.id] ? true : false;
+          
           return {
             ...event,
             icon: getEventIcon(event.id),
             disabled: deadlineHasPassed,
-            deadlineMessage
+            deadlineMessage,
+            hasResponded
           };
         });
     }
@@ -234,7 +240,7 @@ export default function Home() {
     // No events from the database, return empty array
     console.log("No events found from database for RSVP cards");
     return [];
-  }, [events]);
+  }, [events, guest?.eventResponses]);
   
   // For showing events to non-logged-in users (public view)
   const publicEvents = useMemo(() => {
@@ -244,7 +250,8 @@ export default function Home() {
         .filter(event => event.isParent)
         .map(event => ({
           ...event,
-          icon: getEventIcon(event.id)
+          icon: getEventIcon(event.id),
+          hasResponded: false // Non-logged in users can't have responded
         }));
     }
     return [];
@@ -394,20 +401,7 @@ export default function Home() {
             <div className="h-px w-20 bg-primary/50 mx-auto"></div>
           </div>
           
-          <div className={`grid grid-cols-1 ${
-            // Dynamically set grid columns based on number of events
-            guest 
-              ? eventCards.length === 1 
-                ? 'md:grid-cols-1' 
-                : eventCards.length === 2 
-                  ? 'md:grid-cols-2' 
-                  : 'md:grid-cols-3'
-              : publicEvents.length === 1 
-                ? 'md:grid-cols-1' 
-                : publicEvents.length === 2 
-                  ? 'md:grid-cols-2'
-                  : 'md:grid-cols-3'
-          } gap-8 max-w-5xl mx-auto place-items-center`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto place-items-center">
             {guest ? (
               eventCards.length > 0 ? (
                 eventCards.map(event => (
@@ -426,6 +420,7 @@ export default function Home() {
                     onRsvpClick={handleRsvpClick}
                     showLocation={!!guest}
                     maps_link={event.maps_link}
+                    hasResponded={event.hasResponded}
                   />
                 ))
               ) : (
@@ -452,6 +447,7 @@ export default function Home() {
                     onRsvpClick={handleRsvpClick}
                     showLocation={false}
                     maps_link={event.maps_link}
+                    hasResponded={false}
                   />
                 ))
               ) : (

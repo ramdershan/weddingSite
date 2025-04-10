@@ -16,12 +16,42 @@
       "wedding": {
         "response": "Yes",
         "dietaryRestrictions": "",
+        "plusOne": true,
+        "plusOneCount": 1,
+        "adultCount": 1,
+        "childrenCount": 0,
+        "respondedAt": "2025-04-03T19:27:29.643Z",
+        "updatedAt": "2025-04-10T18:18:47.985Z"
+      },
+      "sangeet": {
+        "response": "Yes",
+        "dietaryRestrictions": "",
+        "plusOne": true,
+        "plusOneCount": 1,
+        "adultCount": 1,
+        "childrenCount": 0,
+        "respondedAt": "2025-04-10T18:18:48.643Z",
+        "updatedAt": "2025-04-10T18:18:48.643Z"
+      },
+      "mehndi": {
+        "response": "No",
+        "dietaryRestrictions": "",
         "plusOne": false,
         "plusOneCount": 0,
         "adultCount": 0,
         "childrenCount": 0,
-        "respondedAt": "2025-04-03T19:27:29.643Z",
-        "updatedAt": "2025-04-03T19:27:29.643Z"
+        "respondedAt": "2025-04-10T18:18:48.784Z",
+        "updatedAt": "2025-04-10T18:18:48.784Z"
+      },
+      "haldi": {
+        "response": "Yes",
+        "dietaryRestrictions": "",
+        "plusOne": true,
+        "plusOneCount": 1,
+        "adultCount": 1,
+        "childrenCount": 0,
+        "respondedAt": "2025-04-10T18:18:48.831Z",
+        "updatedAt": "2025-04-10T18:18:48.831Z"
       }
     }
   },

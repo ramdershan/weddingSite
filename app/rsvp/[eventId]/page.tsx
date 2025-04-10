@@ -44,6 +44,9 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   const [minimumLoadingComplete, setMinimumLoadingComplete] = useState<boolean>(false);
   const [dataLoadingComplete, setDataLoadingComplete] = useState<boolean>(false);
   
+  // State for tracking if guest has already responded
+  const [hasResponded, setHasResponded] = useState<boolean>(false);
+  
   // Set a minimum loading time of 2.5 seconds
   useEffect(() => {
     // Start the minimum loading timer
@@ -222,6 +225,11 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       // Pre-fill form if guest has already responded to this event
       if (guest.responded && guest.eventResponses && guest.eventResponses[eventId]) {
         const eventResponse = guest.eventResponses[eventId];
+        
+        // Set flag to indicate the guest has already responded
+        setHasResponded(true);
+        
+        // Fill in form with existing response data
         setResponse(eventResponse.response || "Yes");
         setDietaryRestrictions(eventResponse.dietaryRestrictions || '');
         setPlusOne(eventResponse.plusOne || false);
@@ -252,7 +260,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to load your information. Please try again.",
+        description: "Failed to load your previous RSVP information. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -326,8 +334,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          fullName: guest.fullName,
-          eventId,
+          token: localStorage.getItem('guestToken'),
+          eventCode: eventId,
           response,
           dietaryRestrictions,
           plusOne,
@@ -380,8 +388,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                fullName: guest.fullName,
-                eventId: childEventId,
+                token: localStorage.getItem('guestToken'),
+                eventCode: childEventId,
                 response: "Yes",
                 dietaryRestrictions,
                 plusOne,
@@ -398,8 +406,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              fullName: guest.fullName,
-              eventId: childEventId,
+              token: localStorage.getItem('guestToken'),
+              eventCode: childEventId,
               response: "No",
               dietaryRestrictions: "",
               plusOne: false,
@@ -679,7 +687,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                         Submitting...
                       </>
                     ) : (
-                      "Submit RSVP"
+                      hasResponded ? "Update RSVP" : "Submit RSVP"
                     )}
                   </Button>
                   <Button 

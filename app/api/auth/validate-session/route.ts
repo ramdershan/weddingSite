@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateGuestSession, getGuestEvents } from '@/lib/supabase';
+import { validateGuestSession, getGuestEvents, getGuestResponses } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +38,9 @@ export async function POST(request: NextRequest) {
     
     // Get events the guest has access to
     const { events, access } = await getGuestEvents(guest.id);
+    
+    // Get guest responses from Supabase
+    const guestResponses = await getGuestResponses(guest.id);
     
     // Format events for front-end
     const formattedEvents = events.map(event => {
@@ -79,13 +82,27 @@ export async function POST(request: NextRequest) {
     ).join(', ')}`);
     console.log(`[API] Events with RSVP access: ${rsvpEventCodes.join(', ')}`);
     
+    // Log RSVP responses if available
+    if (guestResponses && Object.keys(guestResponses).length > 0) {
+      console.log(`[API Validate] Guest ${guest.full_name} has responded to events:`, 
+        Object.keys(guestResponses).map(eventId => {
+          const response = guestResponses[eventId]?.response;
+          return `${eventId} (${response})`;
+        }).join(', ')
+      );
+    } else {
+      console.log(`[API Validate] Guest ${guest.full_name} has not responded to any events yet`);
+    }
+    
     // Return guest data from Supabase and the token if retrieved from cookie
     return NextResponse.json({
       success: true,
       guest: {
         fullName: guest.full_name,
-        invitedEvents: invitedEventCodes.length > 0 ? invitedEventCodes : ['engagement', 'wedding', 'reception']
-        // Add any other fields you want to send back
+        invitedEvents: invitedEventCodes.length > 0 ? invitedEventCodes : ['engagement', 'wedding', 'reception'],
+        responded: guestResponses !== null,
+        // Add event responses data if available
+        ...(guestResponses ? { eventResponses: guestResponses } : {})
       },
       events: formattedEvents,
       // Return the token if it was retrieved from cookie so it can be saved to localStorage
