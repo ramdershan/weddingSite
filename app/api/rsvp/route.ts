@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateGuestEventResponse } from '@/lib/data';
-import { validateGuestSession } from '@/lib/supabase';
+import { validateGuestSession, supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +39,39 @@ export async function POST(request: NextRequest) {
     if (supabaseGuest.full_name.toLowerCase() !== fullName.toLowerCase()) {
       return NextResponse.json(
         { error: 'Unauthorized to submit RSVP for this guest' },
+        { status: 403 }
+      );
+    }
+    
+    // Verify the guest has access to RSVP for this event
+    // First get the event ID from the code
+    const { data: event, error: eventError } = await supabaseAdmin
+      .from('events')
+      .select('id')
+      .eq('code', eventId)
+      .single();
+    
+    if (eventError || !event) {
+      console.error('Error finding event by code:', eventError);
+      return NextResponse.json(
+        { error: 'Event not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Now check if the guest has RSVP access to this event
+    const { data: access, error: accessError } = await supabaseAdmin
+      .from('guest_event_access')
+      .select('*')
+      .eq('guest_id', supabaseGuest.id)
+      .eq('event_id', event.id)
+      .eq('can_rsvp', true)
+      .single();
+    
+    if (accessError || !access) {
+      console.error('Guest does not have RSVP access to this event:', accessError);
+      return NextResponse.json(
+        { error: 'You do not have permission to RSVP for this event' },
         { status: 403 }
       );
     }

@@ -26,6 +26,9 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   
   // State for event details from API
   const [eventDetails, setEventDetails] = useState<any>(null);
+  // Add state for child events
+  const [childEvents, setChildEvents] = useState<any[]>([]);
+  const [selectedChildEvents, setSelectedChildEvents] = useState<Record<string, boolean>>({});
   
   const [response, setResponse] = useState<"Yes" | "No" | "Maybe">("Yes");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string>('');
@@ -57,13 +60,48 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     if (events && events.length > 0) {
       const event = events.find(e => e.id === eventId);
       if (event) {
+        // Check if guest can RSVP to this event
+        if (guest && !event.canRsvp) {
+          // Guest does not have RSVP access to this event
+          toast({
+            title: "Access Denied",
+            description: "You are not authorized to RSVP for this event.",
+            variant: "destructive",
+          });
+          router.push('/');
+          return;
+        }
+        
         setEventDetails({
           title: event.title,
           date: event.date,
           time: `${event.time_start}${event.time_end ? ' - ' + event.time_end : ''}`,
           location: event.location,
-          maps_link: event.maps_link
+          maps_link: event.maps_link,
+          isParent: event.isParent
         });
+        
+        // If this is a parent event, find child events that the guest can RSVP to
+        if (event.isParent) {
+          const availableChildEvents = events.filter(e => 
+            e.parentEventId === eventId && 
+            e.canRsvp
+          );
+          
+          if (availableChildEvents.length > 0) {
+            setChildEvents(availableChildEvents);
+            
+            // Initialize selected state based on previous responses
+            const initialSelectedState: Record<string, boolean> = {};
+            availableChildEvents.forEach(childEvent => {
+              // Default to true if guest has already RSVP'd yes to this event
+              const hasResponded = guest?.eventResponses?.[childEvent.id]?.response === "Yes";
+              initialSelectedState[childEvent.id] = hasResponded;
+            });
+            setSelectedChildEvents(initialSelectedState);
+          }
+        }
+        
         setDataLoadingComplete(true);
       } else {
         // Event not found in context, try to fetch it
@@ -73,7 +111,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       // No events in context, try to fetch specific event
       fetchEventDetails();
     }
-  }, [eventId, events]);
+  }, [eventId, events, guest, router, toast]);
   
   // Fetch event details from API
   const fetchEventDetails = async () => {
@@ -81,12 +119,29 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       const response = await fetch(`/api/event/${eventId}`);
       if (response.ok) {
         const data = await response.json();
+        
+        // If we have a guest but no events data yet, we need to check authorization
+        if (guest && events.length > 0) {
+          // Try to find this event in the guest's events
+          const eventInGuestList = events.find(e => e.id === eventId);
+          if (!eventInGuestList || !eventInGuestList.canRsvp) {
+            toast({
+              title: "Access Denied",
+              description: "You are not authorized to RSVP for this event.",
+              variant: "destructive",
+            });
+            router.push('/');
+            return;
+          }
+        }
+        
         setEventDetails({
           title: data.event.title,
           date: data.event.date,
           time: `${data.event.time_start}${data.event.time_end ? ' - ' + data.event.time_end : ''}`,
           location: data.event.location,
-          maps_link: data.event.maps_link
+          maps_link: data.event.maps_link,
+          isParent: data.event.isParent
         });
       } else {
         // API error, redirect to home
@@ -183,6 +238,16 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         if (eventResponse.plusOneCount && eventResponse.adultCount === undefined) {
           setAdultCount(eventResponse.plusOneCount);
         }
+        
+        // Check for child event responses if this is a parent event
+        if (childEvents.length > 0) {
+          const updatedSelectedEvents: Record<string, boolean> = {};
+          childEvents.forEach(childEvent => {
+            const childResponse = guest.eventResponses?.[childEvent.id];
+            updatedSelectedEvents[childEvent.id] = childResponse?.response === "Yes";
+          });
+          setSelectedChildEvents(updatedSelectedEvents);
+        }
       }
     } catch (error) {
       toast({
@@ -225,6 +290,20 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       return;
     }
     
+    // Double-check that this guest can RSVP to this event
+    if (events && events.length > 0) {
+      const eventInGuestList = events.find(e => e.id === eventId);
+      if (!eventInGuestList || !eventInGuestList.canRsvp) {
+        toast({
+          title: "Access Denied",
+          description: "You are not authorized to RSVP for this event.",
+          variant: "destructive",
+        });
+        router.push('/');
+        return;
+      }
+    }
+    
     // Double-check deadline hasn't passed
     if ((eventId === 'engagement' && isEngagementRsvpDeadlinePassed()) || 
         (eventId !== 'engagement' && isRsvpDeadlinePassed())) {
@@ -240,6 +319,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     setIsSubmitting(true);
     
     try {
+      // First, submit the parent event RSVP
       const apiResponse = await fetch('/api/rsvp', {
         method: 'POST',
         headers: {
@@ -258,7 +338,80 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       });
       
       if (!apiResponse.ok) {
-        throw new Error('Failed to submit RSVP');
+        // Get the error message from the response
+        const errorData = await apiResponse.json();
+        
+        // Handle different error types
+        if (apiResponse.status === 403) {
+          // Authorization error
+          toast({
+            title: "Access Denied",
+            description: errorData.error || "You are not authorized to RSVP for this event.",
+            variant: "destructive",
+          });
+          
+          // If it's a permission issue, redirect to home
+          if (errorData.error === "You do not have permission to RSVP for this event") {
+            setTimeout(() => router.push('/'), 2000);
+          }
+          return;
+        } else if (apiResponse.status === 404) {
+          // Event not found
+          toast({
+            title: "Event Not Found",
+            description: "This event does not exist or has been removed.",
+            variant: "destructive",
+          });
+          setTimeout(() => router.push('/'), 2000);
+          return;
+        }
+        
+        throw new Error(errorData.error || 'Failed to submit RSVP');
+      }
+      
+      // Next, submit RSVPs for each selected child event
+      if (childEvents.length > 0 && response === "Yes") {
+        const childEventPromises = Object.entries(selectedChildEvents).map(([childEventId, isSelected]) => {
+          // Only submit for selected events
+          if (isSelected) {
+            return fetch('/api/rsvp', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                fullName: guest.fullName,
+                eventId: childEventId,
+                response: "Yes",
+                dietaryRestrictions,
+                plusOne,
+                plusOneCount: adultCount + childrenCount,
+                adultCount,
+                childrenCount
+              }),
+            });
+          }
+          // For unselected events, set response to "No"
+          return fetch('/api/rsvp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fullName: guest.fullName,
+              eventId: childEventId,
+              response: "No",
+              dietaryRestrictions: "",
+              plusOne: false,
+              plusOneCount: 0,
+              adultCount: 0,
+              childrenCount: 0
+            }),
+          });
+        });
+        
+        // Wait for all child event RSVPs to complete
+        await Promise.all(childEventPromises);
       }
       
       setSubmitted(true);
@@ -267,9 +420,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         description: `Thank you for your response to the ${eventDetails.title}!`,
       });
     } catch (error) {
+      console.error("RSVP submission error:", error);
       toast({
         title: "Error",
-        description: "Failed to submit your RSVP. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit your RSVP. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -410,7 +564,47 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                   </RadioGroup>
                 </div>
                 
-                <div className="space-y-3">
+                {/* Add child events section if this is a parent event */}
+                {childEvents.length > 0 && response !== "No" && (
+                  <div className="mt-4 mb-1">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      This event includes related activities at this location. Please select which you also plan to attend:
+                    </p>
+                    <div className="space-y-1 pl-1">
+                      {childEvents.map((childEvent) => (
+                        <div 
+                          key={childEvent.id} 
+                          className="flex items-center space-x-2 py-1.5"
+                        >
+                          <input
+                            type="checkbox"
+                            id={`child-event-${childEvent.id}`}
+                            checked={selectedChildEvents[childEvent.id] || false}
+                            onChange={(e) => {
+                              setSelectedChildEvents({
+                                ...selectedChildEvents,
+                                [childEvent.id]: e.target.checked
+                              });
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            disabled={response !== "Yes" && response !== "Maybe"}
+                          />
+                          <Label 
+                            htmlFor={`child-event-${childEvent.id}`}
+                            className="cursor-pointer text-sm flex items-center justify-between w-full"
+                          >
+                            <span>{childEvent.title}</span>
+                            <span className="text-xs text-muted-foreground flex items-center">
+                              {childEvent.date}, {childEvent.time_start}
+                            </span>
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="plusOne">Will you bring guests?</Label>
                     <Switch 
@@ -472,7 +666,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                     disabled={response === "No"}
                   />
                 </div>
-                
+
                 <div className="flex flex-col space-y-2">
                   <Button 
                     type="submit" 
