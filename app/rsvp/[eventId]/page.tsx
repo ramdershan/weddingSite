@@ -17,37 +17,15 @@ import { useGuestContext } from '@/context/guest-context';
 import { LoginModal } from '@/components/login-modal';
 import { LoadingScreen } from '@/components/loading-screen';
 
-// Event details mapping
-const EVENT_DETAILS = {
-  engagement: {
-    title: "Engagement Ceremony",
-    date: "September 27, 2025",
-    time: "5:30 PM - Late",
-    location: "ACCA Banquet Hall, Edmonton, AB"
-  },
-  wedding: {
-    title: "Wedding Ceremony",
-    date: "January 24, 2026",
-    time: "1:00 PM - 3:00 PM",
-    location: "Willow Creek Gardens, Main Hall"
-  },
-  reception: {
-    title: "Reception",
-    date: "January 24, 2026",
-    time: "6:00 PM - 11:00 PM",
-    location: "Willow Creek Gardens, Grand Pavilion"
-  }
-};
-
 export default function EventRSVPPage({ params }: { params: { eventId: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const eventId = params.eventId;
-  const { guest, setGuest } = useGuestContext();
+  const { guest, setGuest, events } = useGuestContext();
   
-  // Get event details or redirect if invalid event
-  const eventDetails = EVENT_DETAILS[eventId as keyof typeof EVENT_DETAILS];
+  // State for event details from API
+  const [eventDetails, setEventDetails] = useState<any>(null);
   
   const [response, setResponse] = useState<"Yes" | "No" | "Maybe">("Yes");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string>('');
@@ -74,6 +52,64 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     return () => clearTimeout(timer);
   }, []);
   
+  // Load event details from GuestContext events
+  useEffect(() => {
+    if (events && events.length > 0) {
+      const event = events.find(e => e.id === eventId);
+      if (event) {
+        setEventDetails({
+          title: event.title,
+          date: event.date,
+          time: `${event.time_start}${event.time_end ? ' - ' + event.time_end : ''}`,
+          location: event.location,
+          maps_link: event.maps_link
+        });
+        setDataLoadingComplete(true);
+      } else {
+        // Event not found in context, try to fetch it
+        fetchEventDetails();
+      }
+    } else {
+      // No events in context, try to fetch specific event
+      fetchEventDetails();
+    }
+  }, [eventId, events]);
+  
+  // Fetch event details from API
+  const fetchEventDetails = async () => {
+    try {
+      const response = await fetch(`/api/event/${eventId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setEventDetails({
+          title: data.event.title,
+          date: data.event.date,
+          time: `${data.event.time_start}${data.event.time_end ? ' - ' + data.event.time_end : ''}`,
+          location: data.event.location,
+          maps_link: data.event.maps_link
+        });
+      } else {
+        // API error, redirect to home
+        toast({
+          title: "Event Not Found",
+          description: "The requested event could not be found.",
+          variant: "destructive",
+        });
+        router.push('/');
+      }
+    } catch (error) {
+      console.error("Error fetching event details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load event details. Please try again.",
+        variant: "destructive",
+      });
+      router.push('/');
+    } finally {
+      setDataLoadingComplete(true);
+    }
+  };
+  
   // Only stop loading when both minimum time has passed and data is ready
   useEffect(() => {
     if (minimumLoadingComplete && dataLoadingComplete) {
@@ -98,9 +134,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       setDeadlinePassed(isRsvpDeadlinePassed());
     }
     
-    // Redirect if invalid event ID
-    if (!eventDetails) {
-      router.push('/');
+    // Redirect if invalid event ID (will be handled by fetchEventDetails)
+    if (!eventDetails && dataLoadingComplete) {
       return;
     }
     
@@ -123,7 +158,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       setNeedsLoginModal(true);
       setDataLoadingComplete(true); // No data to load in this case
     }
-  }, [eventId, eventDetails, guest, searchParams]);
+  }, [eventId, eventDetails, guest, searchParams, dataLoadingComplete]);
   
   const fetchGuestData = async () => {
     if (!guest) return;
@@ -304,7 +339,14 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
               </div>
               <div className="flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-primary" />
-                <span>{eventDetails.location}</span>
+                <a 
+                  href={eventDetails.maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(eventDetails.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline text-blue-600"
+                >
+                  {eventDetails.location}
+                </a>
               </div>
             </div>
             

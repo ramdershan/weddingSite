@@ -36,12 +36,99 @@ export type SupabaseGuest = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  invited_events?: string[]; // Array of event IDs the guest is invited to
 };
 
 export type GuestData = {
   full_name: string;
   is_active: boolean;
+  invited_events?: string[];
 };
+
+// Event-related types
+export type SupabaseEvent = {
+  id: string;
+  code: string;
+  name: string;
+  parent_event_id: string | null;
+  category: string;
+  date: string;
+  time_start: string;
+  time_end: string;
+  location: string;
+  maps_link?: string;
+  description: string;
+  rsvp_deadline: string;
+  is_active: boolean;
+  max_plus_ones: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EventAccess = {
+  id: string;
+  guest_id: string;
+  event_id: string;
+  can_rsvp: boolean;
+  created_at: string;
+};
+
+// Function to get events a guest has access to
+export async function getGuestEvents(guestId: string): Promise<{events: SupabaseEvent[], access: EventAccess[]}> {
+  console.log(`[Supabase] Fetching events for guest ID: ${guestId}`);
+  try {
+    // First approach: Get only the events with RSVP access
+    // Get the event IDs that the guest can RSVP to
+    const { data: accessData, error: accessError } = await supabaseAdmin
+      .from('guest_event_access')
+      .select('*')
+      .eq('guest_id', guestId)
+      .eq('can_rsvp', true);  // Only include events where the guest can RSVP
+
+    if (accessError) {
+      console.error('Error fetching guest event access:', accessError);
+      return { events: [], access: [] };
+    }
+
+    console.log(`[Supabase] Found ${accessData?.length || 0} event access records for guest with RSVP permissions`);
+    
+    if (!accessData || accessData.length === 0) {
+      return { events: [], access: [] };
+    }
+
+    // Get only the events with RSVP access
+    const eventIds = accessData.map(access => access.event_id);
+    
+    // Fetch the events
+    const { data: eventsData, error: eventsError } = await supabaseAdmin
+      .from('events')
+      .select('*')
+      .in('id', eventIds)
+      .eq('is_active', true);
+
+    if (eventsError) {
+      console.error('Error fetching events:', eventsError);
+      return { events: [], access: accessData };
+    }
+    
+    console.log(`[Supabase] Fetched ${eventsData?.length || 0} events with RSVP access for guest`);
+    
+    if (!eventsData || eventsData.length === 0) {
+      return { events: [], access: accessData };
+    }
+    
+    console.log(`[Supabase] Event IDs: ${eventsData.map(e => e.id).join(', ')}`);
+    console.log(`[Supabase] Event Codes: ${eventsData.map(e => e.code).join(', ')}`);
+    
+    return { 
+      events: eventsData, 
+      access: accessData 
+    };
+  } catch (error) {
+    console.error('Error in getGuestEvents:', error);
+    return { events: [], access: [] };
+  }
+}
 
 export async function getGuestByName(name: string): Promise<SupabaseGuest | null> {
   try {
@@ -57,6 +144,7 @@ export async function getGuestByName(name: string): Promise<SupabaseGuest | null
       return null;
     }
 
+    console.log(`[Supabase] Found guest with ID: ${data?.id}`);
     return data;
   } catch (error) {
     console.error('Error in getGuestByName:', error);
@@ -203,7 +291,7 @@ export async function validateGuestSession(sessionToken: string): Promise<Supaba
       return null;
     }
 
-    // Then get the guest
+    // Then get the guest with their invited events
     const { data: guestData, error: guestError } = await supabaseAdmin
       .from('guests')
       .select('*')
@@ -213,6 +301,14 @@ export async function validateGuestSession(sessionToken: string): Promise<Supaba
 
     if (guestError) {
       return null;
+    }
+
+    // Default to all events if invited_events is not specified
+    if (!guestData.invited_events) {
+      console.log(`Guest ${guestData.full_name} has no specific event invitations, defaulting to all events`);
+      guestData.invited_events = ['engagement', 'wedding', 'reception'];
+    } else {
+      console.log(`Guest ${guestData.full_name} is invited to: ${guestData.invited_events.join(', ')}`);
     }
 
     return guestData;

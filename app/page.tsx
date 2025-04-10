@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -28,7 +28,8 @@ function EventCard({
   guest,
   onLoginClick,
   onRsvpClick,
-  showLocation = true
+  showLocation = true,
+  maps_link
 }: { 
   title: string; 
   date: string; 
@@ -42,6 +43,7 @@ function EventCard({
   onLoginClick?: () => void;
   onRsvpClick?: (eventId: string) => void;
   showLocation?: boolean;
+  maps_link?: string;
 }) {
   return (
     <Card className={`overflow-hidden shadow-md transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl ${disabled ? 'opacity-70' : ''}`}>
@@ -64,7 +66,14 @@ function EventCard({
               {showLocation ? (
                 <div className="flex items-center">
                   <MapPin className="h-4 w-4 mr-2" />
-                  <span>{location}</span>
+                  <a 
+                    href={maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(location)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline text-blue-600"
+                  >
+                    {location}
+                  </a>
                 </div>
               ) : (
                 <div className="flex items-center text-blue-600">
@@ -113,7 +122,7 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pageReady, setPageReady] = useState(false);
   const weddingDate = getWeddingDate();
-  const { guest, isLoading } = useGuestContext();
+  const { guest, isLoading, events } = useGuestContext();
   
   // Handle URL hash navigation after page is loaded
   useEffect(() => {
@@ -162,6 +171,84 @@ export default function Home() {
     // Add guest name as a query parameter
     window.location.href = `/rsvp/${eventId}?name=${encodeURIComponent(guest.fullName)}`;
   }, [guest]);
+  
+  // Function to get event icon based on event ID or category
+  const getEventIcon = (eventId: string) => {
+    switch (eventId) {
+      case 'engagement':
+        return <RingIcon className="h-5 w-5 text-primary" />;
+      case 'wedding':
+        return <Heart className="h-6 w-6 text-primary text-rose-500" />;
+      case 'reception':
+        return <PartyPopper className="h-6 w-6 text-amber-500" />;
+      case 'sangeet':
+        return <Heart className="h-6 w-6 text-blue-500" />;
+      case 'haldi':
+        return <Heart className="h-6 w-6 text-yellow-500" />;
+      case 'mehndi':
+        return <Heart className="h-6 w-6 text-green-500" />;
+      default:
+        return <Diamond className="h-6 w-6 text-primary" />;
+    }
+  };
+  
+  // For the timeline section - all events the guest can see
+  const timelineEvents = useMemo(() => {
+    // If guest is logged in, use their specific events
+    if (guest && events && events.length > 0) {
+      console.log("Using events from database for timeline:", events);
+      // Sort events by date
+      return [...events].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA.getTime() - dateB.getTime();
+      });
+    }
+    
+    // Default to empty array if no events
+    return [];
+  }, [guest, events]);
+  
+  // For the RSVP section - only parent events with RSVP access
+  const eventCards = useMemo(() => {
+    // If we have events from the database, use those
+    if (events && events.length > 0) {
+      console.log("Using events from DB for cards:", events);
+      // Filter to parent events and events that can be RSVP'd to
+      return events
+        .filter(event => event.isParent && event.canRsvp)
+        .map(event => {
+          // Check if RSVP deadline has passed
+          const deadlineHasPassed = event.rsvpDeadline ? new Date() > new Date(event.rsvpDeadline) : false;
+          const deadlineMessage = deadlineHasPassed ? "RSVP Deadline Passed" : "";
+          
+          return {
+            ...event,
+            icon: getEventIcon(event.id),
+            disabled: deadlineHasPassed,
+            deadlineMessage
+          };
+        });
+    }
+    
+    // No events from the database, return empty array
+    console.log("No events found from database for RSVP cards");
+    return [];
+  }, [events]);
+  
+  // For showing events to non-logged-in users (public view)
+  const publicEvents = useMemo(() => {
+    if (events && events.length > 0) {
+      // For non-logged-in users, only show parent events
+      return events
+        .filter(event => event.isParent)
+        .map(event => ({
+          ...event,
+          icon: getEventIcon(event.id)
+        }));
+    }
+    return [];
+  }, [events]);
   
   if (isLoading) {
     return <LoadingScreen />;
@@ -255,108 +342,47 @@ export default function Home() {
           </div>
           
           <div className="max-w-4xl mx-auto">
-            <div className="relative">
-              <div className="space-y-10 md:space-y-12">
-                <div className="relative">
-                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
-                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
-                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Engagement Ceremony</h3>
-                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">September 27, 2025</p>
+            {timelineEvents.length > 0 ? (
+              <div className="relative">
+                <div className="space-y-10 md:space-y-12">
+                  {timelineEvents.map((event, index) => (
+                    <div className="relative" key={event.id}>
+                      <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                        <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
+                          <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
+                          <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
+                          <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">{event.title}</h3>
+                          <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">{event.date}</p>
+                        </div>
+                        <div className="pl-10 md:mt-0 md:pl-8">
+                          <p className="text-muted-foreground text-sm md:text-base">
+                            {event.description || `Join us for the ${event.title} at ${event.location}.`}
+                          </p>
+                          <div className="mt-2 flex items-center text-sm">
+                            <Clock className="h-3 w-3 mr-1 text-primary" />
+                            <span className="text-primary">{event.time_start} {event.time_end ? `- ${event.time_end}` : ''}</span>
+                            <span className="mx-2">|</span>
+                            <MapPin className="h-3 w-3 mr-1 text-primary" />
+                            <a 
+                              href={event.maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(event.location)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {event.location}
+                            </a>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="pl-10 md:mt-0 md:pl-8">
-                      <p className="text-muted-foreground text-sm md:text-base">
-                        Join us for our traditional engagement ceremony at ACCA Banquet Hall. 
-                        Get ready for an evening full of laughter, performances, and of course, dance!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
-                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
-                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Mehndi</h3>
-                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 22, 2026</p>
-                    </div>
-                    <div className="pl-10 md:mt-0 md:pl-8">
-                      <p className="text-muted-foreground text-sm md:text-base">
-                        Experience the beautiful tradition of Mehndi as intricate designs adorn the bride and guests.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
-                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
-                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Haldi</h3>
-                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 23, 2026</p>
-                    </div>
-                    <div className="pl-10 md:mt-0 md:pl-8">
-                      <p className="text-muted-foreground text-sm md:text-base">
-                        Join us for the auspicious Haldi ceremony where turmeric paste is applied to bless the couple. 
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
-                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
-                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Sangeet</h3>
-                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 23, 2026</p>
-                    </div>
-                    <div className="pl-10 md:mt-0 md:pl-8">
-                      <p className="text-muted-foreground text-sm md:text-base">
-                        Celebrate with us during an evening filled with music, dance, and festivities.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
-                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
-                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Wedding Ceremony</h3>
-                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 24, 2026</p>
-                    </div>
-                    <div className="pl-10 md:mt-0 md:pl-8">
-                      <p className="text-muted-foreground text-sm md:text-base">
-                        Witness our beautiful wedding ceremony and come give us your blessings. 
-                        The ceremony will be a blend of our cultures...
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
-                    <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
-                      <div className="hidden md:block absolute right-[-8px] top-0 w-4 h-4 rounded-full bg-[#741914]"></div>
-                      <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
-                      <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">Reception</h3>
-                      <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">January 28, 2026</p>
-                    </div>
-                    <div className="pl-10 md:mt-0 md:pl-8">
-                      <p className="text-muted-foreground text-sm md:text-base">
-                        Celebrate with us at our evening reception in the Grand Pavilion. 
-                        Enjoy dinner, dancing, and making memories together.
-                      </p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-center p-6 bg-muted rounded-lg">
+                <p>{guest ? "No events available for you at this time." : "Please sign in to view the event timeline."}</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -368,51 +394,72 @@ export default function Home() {
             <div className="h-px w-20 bg-primary/50 mx-auto"></div>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {!engagementDeadlinePassed && (
-              <EventCard 
-                title="Engagement Ceremony" 
-                date="September 27, 2025" 
-                time="5:30 PM - Late" 
-                location="ACCA Banquet Hall, Edmonton, AB"
-                icon={<RingIcon className="h-5 w-5 text-primary" />}
-                eventId="engagement"
-                disabled={engagementDeadlinePassed || deadlinePassed || !guest}
-                deadlineMessage={engagementDeadlinePassed && !deadlinePassed ? "RSVP Closed for Engagement" : ""}
-                guest={guest}
-                onLoginClick={() => setShowLoginModal(true)}
-                onRsvpClick={handleRsvpClick}
-                showLocation={!!guest}
-              />
+          <div className={`grid grid-cols-1 ${
+            // Dynamically set grid columns based on number of events
+            guest 
+              ? eventCards.length === 1 
+                ? 'md:grid-cols-1' 
+                : eventCards.length === 2 
+                  ? 'md:grid-cols-2' 
+                  : 'md:grid-cols-3'
+              : publicEvents.length === 1 
+                ? 'md:grid-cols-1' 
+                : publicEvents.length === 2 
+                  ? 'md:grid-cols-2'
+                  : 'md:grid-cols-3'
+          } gap-8 max-w-5xl mx-auto place-items-center`}>
+            {guest ? (
+              eventCards.length > 0 ? (
+                eventCards.map(event => (
+                  <EventCard 
+                    key={event.id}
+                    title={event.title} 
+                    date={event.date} 
+                    time={`${event.time_start}${event.time_end ? ` - ${event.time_end}` : ''}`}
+                    location={event.location}
+                    icon={event.icon}
+                    eventId={event.id}
+                    disabled={event.disabled || deadlinePassed}
+                    deadlineMessage={event.deadlineMessage || (deadlinePassed ? "RSVP Closed" : "")}
+                    guest={guest}
+                    onLoginClick={() => setShowLoginModal(true)}
+                    onRsvpClick={handleRsvpClick}
+                    showLocation={!!guest}
+                    maps_link={event.maps_link}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center p-6 bg-muted rounded-lg">
+                  <p>No events available for RSVP at this time.</p>
+                </div>
+              )
+            ) : (
+              // For non-logged in users, show a preview of public events
+              publicEvents.length > 0 ? (
+                publicEvents.map(event => (
+                  <EventCard 
+                    key={event.id}
+                    title={event.title} 
+                    date={event.date} 
+                    time={`${event.time_start}${event.time_end ? ` - ${event.time_end}` : ''}`}
+                    location={event.location}
+                    icon={event.icon}
+                    eventId={event.id}
+                    disabled={deadlinePassed}
+                    deadlineMessage={deadlinePassed ? "RSVP Closed" : ""}
+                    guest={null}
+                    onLoginClick={() => setShowLoginModal(true)}
+                    onRsvpClick={handleRsvpClick}
+                    showLocation={false}
+                    maps_link={event.maps_link}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center p-6 bg-muted rounded-lg">
+                  <p>Sign in to see available events.</p>
+                </div>
+              )
             )}
-            
-            <EventCard 
-              title="Wedding Ceremony" 
-              date="January 24, 2026" 
-              time="1:00 PM - 3:00 PM" 
-              location="Willow Creek Gardens, Main Hall"
-              icon={<Heart className="h-6 w-6 text-primary text-rose-500" />}
-              eventId="wedding"
-              disabled={deadlinePassed || !guest}
-              guest={guest}
-              onLoginClick={() => setShowLoginModal(true)}
-              onRsvpClick={handleRsvpClick}
-              showLocation={!!guest}
-            />
-            
-            <EventCard 
-              title="Reception" 
-              date="January 28, 2026" 
-              time="6:00 PM - 11:00 PM" 
-              location="Willow Creek Gardens, Grand Pavilion"
-              icon={<PartyPopper className="h-6 w-6 text-amber-500" />}
-              eventId="reception"
-              disabled={deadlinePassed || !guest}
-              guest={guest}
-              onLoginClick={() => setShowLoginModal(true)}
-              onRsvpClick={handleRsvpClick}
-              showLocation={!!guest}
-            />
           </div>
           
           {deadlinePassed && (
