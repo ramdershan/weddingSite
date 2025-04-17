@@ -50,7 +50,7 @@ export default function RSVPPage() {
     try {
       // Pre-fill form if guest has already responded
       if (guest.responded) {
-        setResponse(guest.response || "Yes");
+        setResponse((guest.response as "Yes" | "No" | "Maybe") || "Yes");
         setDietaryRestrictions(guest.dietaryRestrictions || '');
         setPlusOne(guest.plusOne || false);
         
@@ -100,7 +100,7 @@ export default function RSVPPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/rsvp', {
+      const rsvpResponse = await fetch('/api/rsvp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ export default function RSVPPage() {
         }),
       });
       
-      if (!response.ok) {
+      if (!rsvpResponse.ok) {
         throw new Error('Failed to submit RSVP');
       }
       
@@ -146,7 +146,20 @@ export default function RSVPPage() {
   
   if (deadlinePassed) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-
-    )
+      <main className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4">
+        <Card className="max-w-md w-full p-6">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <AlertTriangle className="h-12 w-12 text-amber-500" />
+            <h1 className="text-2xl font-bold">RSVP Period Has Ended</h1>
+            <p className="text-muted-foreground">
+              The deadline for submitting RSVPs has passed. Please contact the hosts directly for any questions.
+            </p>
+            <Button onClick={() => router.push('/')} variant="secondary">
+              Return to Home
+            </Button>
+          </div>
+        </Card>
+      </main>
+    );
   }
 }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Verify the username exists in admin users
     console.log('[Admin Auth] Checking if user is admin:', adminAuth.value);
     const isAdmin = ADMIN_USERS.some(user => 
-      user.username.toLowerCase() === adminAuth.value.toLowerCase()
+      user.username.toLowerCase() === adminAuth?.value?.toLowerCase()
     );
     
     if (!isAdmin) {

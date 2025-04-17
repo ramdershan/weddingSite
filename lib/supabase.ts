@@ -772,7 +772,7 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
       const eventResponses: Record<string, any> = {};
       let dietaryRestrictionsText = '';
       
-      guestRsvps.forEach(rsvp => {
+      guestRsvps.forEach((rsvp: any) => {
         const event = eventMap.get(rsvp.event_id);
         if (!event) return;
         
