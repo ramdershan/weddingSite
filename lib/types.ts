@@ -10,7 +10,9 @@ export type EventResponse = {
 };
 
 export type Guest = {
+  id?: string;
   fullName: string;
+  isActive?: boolean;
   responded?: boolean;
   response?: string;
   dietaryRestrictions?: string;
@@ -22,6 +24,7 @@ export type Guest = {
   updatedAt?: string;
   eventResponses?: Record<string, any>;
   invitedEvents?: string[];
+  createdAt?: string;
 };
 
 export type GuestList = Record<string, Guest>;
@@ -31,17 +34,23 @@ export type AdminUser = {
   password: string;
 };
 
+export type EventSummaryStats = {
+  yes: number;
+  no: number;
+  maybe: number;
+  totalAttending: number;
+  plusOnes: number;
+  adultsAttending?: number;
+  childrenAttending?: number;
+};
+
 export type RSVPSummary = {
-  totalGuests: number;
   responded: number;
   notResponded: number;
-  eventStats: Record<string, {
-    yes: number;
-    no: number;
-    maybe: number;
-    totalAttending: number;
-    plusOnes: number;
-  }>;
+  invitedGuests: number;
+  adultGuests: number;
+  childrenGuests: number;
+  events: Record<string, EventSummaryStats>;
 };
 
 export type SupabaseEvent = {
@@ -66,17 +75,20 @@ export type SupabaseEvent = {
 export type EventData = {
   id: string;
   title: string;
+  raw_date: string;
+  raw_time_start: string;
   date: string;
   time_start: string;
   time_end: string;
   location: string;
   maps_link?: string;
-  description?: string;
+  description: string;
   rsvpDeadline?: Date | null;
   isParent: boolean;
-  parentEventId?: string | null;
+  parentEventId: string | null;
   canRsvp: boolean;
   icon?: React.ReactNode;
+  hasResponded?: boolean;
   disabled?: boolean;
   deadlineMessage?: string;
 };

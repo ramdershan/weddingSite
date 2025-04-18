@@ -41,13 +41,17 @@ export async function GET(request: NextRequest) {
     const formattedEvents = events.map(event => {
       // Check for parent-child relationship
       const isParent = event.parent_event_id === null;
-      console.log(`Event ${event.code} (${event.name}): parent_event_id=${event.parent_event_id}, isParent=${isParent}`);
+      // console.log(`Event ${event.code} (${event.name}): parent_event_id=${event.parent_event_id}, isParent=${isParent}`);
       
       // Create a map of event IDs to their codes for parent reference
       const eventCodeMap = new Map();
       events.forEach(e => eventCodeMap.set(e.id, e.code));
       
       return {
+        // Keep original values for sorting
+        raw_date: event.date, 
+        raw_time_start: event.time_start,
+        // Formatted values for display
         id: event.code,
         title: event.name,
         date: formatDate(event.date),
@@ -93,6 +97,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.json({ 
       guest: {
         fullName: supabaseGuest.full_name,
+        dietaryRestrictions: supabaseGuest.dietary_restrictions || '',
         responded: guestResponses !== null,
         invitedEvents: invitedEventCodes || ['engagement', 'wedding', 'reception'],
         ...(guestResponses ? { eventResponses: guestResponses } : {})

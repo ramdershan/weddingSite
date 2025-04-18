@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminCredentials } from '@/lib/data';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,10 +18,30 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Find the valid admin user with case-insensitive check to get the correct casing
-    const isValid = verifyAdminCredentials(username, password);
+    // Query the admin_users table
+    const { data: adminUser, error: userError } = await supabaseAdmin
+      .from('admin_users')
+      .select('id, password, username') // Select username to get correct casing
+      .eq('username', username) // Case-sensitive check might be desirable here depending on DB collation
+      .single();
+
+    if (userError || !adminUser) {
+      console.log('[Admin Login API] Invalid credentials for username:', username);
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
     
-    if (!isValid) {
+    // *** SECURITY WARNING: PLAIN TEXT PASSWORD COMPARISON ***
+    // This is highly insecure as your database stores passwords in plain text.
+    // You MUST implement secure password hashing (e.g., using bcrypt) both when
+    // storing the password and comparing it here.
+    // *** CHANGE: Compare against 'password' column ***
+    const isValidPassword = password === adminUser.password; 
+    // *** END SECURITY WARNING ***
+
+    if (!isValidPassword) {
       console.log('[Admin Login API] Invalid credentials for username:', username);
       return NextResponse.json(
         { error: 'Invalid credentials' },

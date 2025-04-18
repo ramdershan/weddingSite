@@ -15,8 +15,6 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loginAttempts, setLoginAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -43,11 +41,6 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isLocked) {
-      setError("Too many failed attempts. Please try again later.");
-      return;
-    }
     
     if (!username.trim() || !password.trim()) {
       setError("Please enter both username and password");
@@ -77,33 +70,15 @@ export default function AdminLoginPage() {
           description: `Welcome to the admin dashboard${username ? ', ' + username : ''}`,
         });
         
-        // Reset login attempts on successful login
-        setLoginAttempts(0);
         router.push(redirectTo);
       } else {
         console.error('[Admin Login] Login failed:', data.error);
-        setLoginAttempts(prev => prev + 1);
         
         // Show appropriate error based on status code
         if (response.status === 401) {
           setError("Invalid credentials. Please check your username and password.");
-        } else if (response.status === 429) {
-          setError("Too many login attempts. Please try again later.");
-          setIsLocked(true);
         } else {
           setError(data.error || "Login failed. Please check your credentials.");
-        }
-        
-        // Lock the form after 3 failed attempts
-        if (loginAttempts >= 2) { // This will be the 3rd attempt
-          setIsLocked(true);
-          setError("Too many failed attempts. Please try again later.");
-          
-          // Unlock after 2 minutes
-          setTimeout(() => {
-            setIsLocked(false);
-            setLoginAttempts(0);
-          }, 120000);
         }
       }
     } catch (error) {
@@ -126,65 +101,55 @@ export default function AdminLoginPage() {
           </CardHeader>
           
           <CardContent>
-            {isLocked ? (
-              <Alert variant="destructive" className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
-                <AlertTriangle className="h-5 w-5" />
-                <AlertDescription className="ml-2">
-                  <div className="font-semibold mb-1">Account temporarily locked</div>
-                  <p>Too many failed login attempts. Please try again in 2 minutes.</p>
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="username"
-                      placeholder="Enter your username"
-                      className="pl-10"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      disabled={isLoading || isLocked}
-                      autoComplete="username"
-                    />
-                  </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="username"
+                    placeholder="Enter your username"
+                    className="pl-10"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={isLoading}
+                    autoComplete="username"
+                  />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      className="pl-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading || isLocked}
-                      autoComplete="current-password"
-                    />
-                  </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    className="pl-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    autoComplete="current-password"
+                  />
                 </div>
-                
-                {error && (
-                  <Alert variant="destructive" className="bg-red-50 text-red-800 border-red-200">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="ml-2">{error}</AlertDescription>
-                  </Alert>
-                )}
-                
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading || isLocked}
-                >
-                  {isLoading ? "Logging in..." : "Login"}
-                </Button>
-              </form>
-            )}
+              </div>
+              
+              {error && (
+                <Alert variant="destructive" className="bg-red-50 text-red-800 border-red-200">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="ml-2">{error}</AlertDescription>
+                </Alert>
+              )}
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading}
+              >
+                {isLoading ? "Logging in..." : "Login"}
+              </Button>
+            </form>
           </CardContent>
           
           <CardFooter className="flex justify-center">

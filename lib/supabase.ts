@@ -3,6 +3,8 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 import { createClient } from '@supabase/supabase-js';
+// Import the missing type
+import type { RSVPSummary, EventSummaryStats } from './types';
 
 // Create a single supabase client for interacting with your database
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -34,6 +36,7 @@ export type SupabaseGuest = {
   id: string;
   full_name: string;
   is_active: boolean;
+  dietary_restrictions?: string; // Add optional dietary restrictions field
   created_at: string;
   updated_at: string;
   invited_events?: string[]; // Array of event IDs the guest is invited to
@@ -139,16 +142,32 @@ export async function getGuestByName(name: string): Promise<SupabaseGuest | null
       .ilike('full_name', name)
       .single();
 
+    // Handle specific Supabase client errors (e.g., 'PGRST116' is no rows found)
     if (error) {
-      console.error('Error fetching guest:', error);
-      return null;
+      // If the error indicates the guest was simply not found, return null quietly.
+      // You might need to adjust the error code check based on Supabase specifics.
+      if (error.code === 'PGRST116') {
+        console.log(`[Supabase] Guest not found: ${name}`);
+        return null;
+      }
+      // For other Supabase client errors, log it but still consider it an internal failure.
+      console.error('Supabase client error fetching guest:', error);
+      throw new Error(`Supabase client error: ${error.message}`); // Re-throw other client errors
     }
 
-    console.log(`[Supabase] Found guest with ID: ${data?.id}`);
+    // If data is explicitly null but no error, it means guest not found by ilike
+    if (data === null) {
+        console.log(`[Supabase] Guest not found (no match for ilike): ${name}`);
+        return null;
+    }
+
+    console.log(`[Supabase] Found guest with ID: ${data.id}`);
     return data;
   } catch (error) {
-    console.error('Error in getGuestByName:', error);
-    return null;
+    // Catch network errors or other unexpected issues during the fetch
+    console.error('Caught error in getGuestByName:', error);
+    // Re-throw the error so the calling function (API route) handles it as a 500
+    throw error;
   }
 }
 
@@ -488,6 +507,20 @@ export async function updateGuestResponse(
       console.error('Error upserting guest response:', upsertError);
       return false;
     }
+    
+    // --- NEW: Update the main guest record --- 
+    const { error: guestUpdateError } = await supabaseAdmin
+      .from('guests')
+      .update({ dietary_restrictions: responseData.dietaryRestrictions || '' })
+      .eq('id', guestId);
+      
+    if (guestUpdateError) {
+       console.error('[Supabase] Error updating guest dietary restrictions:', guestUpdateError);
+       // Log the error but don't fail the entire operation, as the RSVP itself succeeded.
+    } else {
+        console.log(`[Supabase] Successfully updated main dietary restrictions for guest ID: ${guestId}`);
+    }
+    // --- END NEW --- 
 
     // Check if this is a parent event (no parent_event_id) and the response is "No"
     // If so, we need to automatically decline all child events
@@ -582,28 +615,12 @@ export async function updateGuestResponse(
   }
 }
 
-// Get RSVP summary data directly from Supabase
-export async function getRSVPSummaryFromSupabase(): Promise<{
-  events: {
-    [eventId: string]: {
-      yes: number;
-      no: number;
-      maybe: number;
-      totalAttending: number;
-      plusOnes: number;
-      adultGuests: number;
-      childrenGuests: number;
-    }
-  },
-  totalGuests: number;
-  totalResponded: number;
-  totalAttending: number;
-  totalPlusOnes: number;
-}> {
+// Update the return type definition for clarity and alignment with types.ts
+export async function getRSVPSummaryFromSupabase(): Promise<RSVPSummary> {
   try {
     console.log(`[Supabase] Fetching RSVP summary data`);
     
-    // Get all events
+    // Get all active events
     const { data: events, error: eventsError } = await supabaseAdmin
       .from('events')
       .select('id, code, name, parent_event_id')
@@ -617,94 +634,143 @@ export async function getRSVPSummaryFromSupabase(): Promise<{
     // Get all RSVPs
     const { data: rsvps, error: rsvpsError } = await supabaseAdmin
       .from('rsvps')
-      .select('*');
+      .select('*'); // Select needed fields: guest_id, event_id, response, adult_count, children_count
       
     if (rsvpsError) {
       console.error('Error fetching RSVPs for summary:', rsvpsError);
       throw rsvpsError;
     }
     
-    // Get total guest count
-    const { data: guests, error: guestsError } = await supabaseAdmin
+    // Get total active guest count
+    const { count: totalInvitedGuests, error: guestsError } = await supabaseAdmin
       .from('guests')
-      .select('id')
+      .select('id', { count: 'exact', head: true }) // Use count for efficiency
       .eq('is_active', true);
       
     if (guestsError) {
-      console.error('Error fetching guests for summary:', guestsError);
+      console.error('Error fetching guests count for summary:', guestsError);
       throw guestsError;
     }
     
-    // Initialize summary data
-    const summary = {
-      events: {} as Record<string, any>,
-      totalGuests: guests?.length || 0,
-      totalResponded: 0,
-      totalAttending: 0,
-      totalPlusOnes: 0
+    // Initialize summary data structure according to RSVPSummary type
+    const summary: RSVPSummary = {
+      invitedGuests: totalInvitedGuests || 0,
+      responded: 0, // Will be calculated later
+      notResponded: 0, // Will be calculated later
+      adultGuests: 0, // Initialize overall counts
+      childrenGuests: 0,
+      events: {} // Initialize events object
+      // REMOVED: totalGuests (use invitedGuests), totalAttending, totalPlusOnes from top level
     };
     
     // Create a map of event IDs to event codes for easy lookup
-    const eventMap = new Map();
+    const eventMap = new Map<string, string>();
     events?.forEach(event => {
       eventMap.set(event.id, event.code);
       
-      // Initialize event summary data
+      // Initialize event summary data for each active event
       summary.events[event.code] = {
         yes: 0,
         no: 0,
         maybe: 0,
         totalAttending: 0,
         plusOnes: 0,
-        adultGuests: 0,
-        childrenGuests: 0
+        adultsAttending: 0, 
+        childrenAttending: 0 
       };
     });
     
-    // Track unique guests who have responded
+    // Track unique guests who have responded AT LEAST ONCE
     const respondedGuestIds = new Set<string>();
     
     // Process RSVPs
     rsvps?.forEach(rsvp => {
       const eventCode = eventMap.get(rsvp.event_id);
-      if (!eventCode || !summary.events[eventCode]) return;
+      // Only process if the event exists in our active events map
+      if (!eventCode || !summary.events[eventCode]) return; 
       
-      // Add guest to responded set
+      // Add guest to responded set (counts guest if they responded to ANY event)
       respondedGuestIds.add(rsvp.guest_id);
+      
+      const eventSummary = summary.events[eventCode];
       
       // Count responses by type
       if (rsvp.response === 'Yes') {
-        summary.events[eventCode].yes++;
+        eventSummary.yes++;
         
-        // Count attending guests and plus ones
-        const adults = parseInt(rsvp.adult_count) || 0;
-        const children = parseInt(rsvp.children_count) || 0;
-        const totalPlusOnes = adults + children;
+        // Calculate attending counts for this specific event
+        const adults = parseInt(rsvp.adult_count || '0') || 0;
+        const children = parseInt(rsvp.children_count || '0') || 0;
+        const plusOnesForEvent = adults + children; // Plus ones for THIS rsvp
+        const primaryGuestAttending = 1; // The guest themselves
         
-        summary.events[eventCode].totalAttending++;
-        summary.events[eventCode].plusOnes += totalPlusOnes;
-        summary.events[eventCode].adultGuests += adults;
-        summary.events[eventCode].childrenGuests += children;
+        eventSummary.adultsAttending = (eventSummary.adultsAttending || 0) + adults;
+        eventSummary.childrenAttending = (eventSummary.childrenAttending || 0) + children;
+        eventSummary.plusOnes = (eventSummary.plusOnes || 0) + plusOnesForEvent;
+        eventSummary.totalAttending = (eventSummary.totalAttending || 0) + primaryGuestAttending + plusOnesForEvent;
         
-        // Add to totals for engagement, wedding, and reception (parent events)
-        if (['engagement', 'wedding', 'reception'].includes(eventCode)) {
-          summary.totalAttending++;
-          summary.totalPlusOnes += totalPlusOnes;
-        }
+        // Accumulate overall adult/child counts IF this is the first 'Yes' for this guest to avoid double counting?
+        // -- Let's simplify: calculate overall adult/children totals separately after this loop --
+
       } else if (rsvp.response === 'No') {
-        summary.events[eventCode].no++;
+        eventSummary.no++;
       } else if (rsvp.response === 'Maybe') {
-        summary.events[eventCode].maybe++;
+        // Treat Maybe like Yes for counting potential attendees?
+        // For now, just count maybe separately.
+         eventSummary.maybe++;
+         // Optionally count maybe attendees like Yes - uncomment if needed
+         /*
+         const adults = parseInt(rsvp.adult_count || '0') || 0;
+         const children = parseInt(rsvp.children_count || '0') || 0;
+         const plusOnesForEvent = adults + children;
+         const primaryGuestAttending = 1;
+         eventSummary.adultsAttending = (eventSummary.adultsAttending || 0) + adults;
+         eventSummary.childrenAttending = (eventSummary.childrenAttending || 0) + children;
+         eventSummary.plusOnes = (eventSummary.plusOnes || 0) + plusOnesForEvent;
+         eventSummary.totalAttending = (eventSummary.totalAttending || 0) + primaryGuestAttending + plusOnesForEvent;
+         */
       }
     });
     
-    // Set total responded guests
-    summary.totalResponded = respondedGuestIds.size;
+    // Calculate overall adult/children counts by summing from PER-GUEST MAX attending count
+    // This prevents double counting if a guest says Yes to multiple events
+    const guestAttendanceCounts: Record<string, { adults: number, children: number }> = {};
+    rsvps?.forEach(rsvp => {
+       if (rsvp.response === 'Yes') { // Only count definite Yes
+           const adults = parseInt(rsvp.adult_count || '0') || 0;
+           const children = parseInt(rsvp.children_count || '0') || 0;
+           if (!guestAttendanceCounts[rsvp.guest_id]) {
+               guestAttendanceCounts[rsvp.guest_id] = { adults: 0, children: 0 };
+           }
+           // Store the MAX counts per guest across all their 'Yes' responses
+           guestAttendanceCounts[rsvp.guest_id].adults = Math.max(guestAttendanceCounts[rsvp.guest_id].adults, adults);
+           guestAttendanceCounts[rsvp.guest_id].children = Math.max(guestAttendanceCounts[rsvp.guest_id].children, children);
+       }
+    });
     
+    Object.values(guestAttendanceCounts).forEach(counts => {
+        summary.adultGuests += counts.adults;
+        summary.childrenGuests += counts.children;
+    });
+
+    // Set final calculated overall response counts
+    summary.responded = respondedGuestIds.size;
+    summary.notResponded = summary.invitedGuests - summary.responded;
+    
+    console.log('[Supabase] RSVP Summary Calculation Complete');
     return summary;
   } catch (error) {
-    console.error('Error in getRSVPSummaryFromSupabase:', error);
-    throw error;
+    console.error('[Supabase] Error in getRSVPSummaryFromSupabase:', error);
+    // Re-throw or return a default structure?
+    // Returning a default structure to avoid breaking the API route
+     return {
+      invitedGuests: 0,
+      responded: 0,
+      notResponded: 0,
+      adultGuests: 0,
+      childrenGuests: 0,
+      events: {}
+    };
   }
 }
 
@@ -770,7 +836,6 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
       
       // Format event responses
       const eventResponses: Record<string, any> = {};
-      let dietaryRestrictionsText = '';
       
       guestRsvps.forEach((rsvp: any) => {
         const event = eventMap.get(rsvp.event_id);
@@ -787,20 +852,15 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
           respondedAt: rsvp.responded_at,
           updatedAt: rsvp.updated_at
         };
-        
-        // Add dietary restrictions to the main text
-        if (rsvp.dietary_restrictions && rsvp.dietary_restrictions.trim()) {
-          dietaryRestrictionsText += `${event.name}: ${rsvp.dietary_restrictions}\n`;
-        }
       });
       
-      // Format the guest with responses
+      // Format the guest with responses - use the guest's dietary_restrictions directly from the guests table
       return {
         id: guest.id,
         fullName: guest.full_name,
         isActive: guest.is_active,
         responded: Object.keys(eventResponses).length > 0,
-        dietaryRestrictions: dietaryRestrictionsText.trim(),
+        dietaryRestrictions: guest.dietary_restrictions || '',
         eventResponses,
         createdAt: guest.created_at,
         updatedAt: guest.updated_at
