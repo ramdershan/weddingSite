@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEventByCode } from '@/lib/supabase';
 import { EventData } from '@/lib/types';
+import { supabaseAdmin } from '@/lib/supabase';
 
 function formatDate(dateStr: string): string {
   try {
@@ -54,6 +55,27 @@ function formatTime(timeStr: string): string {
   }
 }
 
+// Helper function to format event data for API response
+function formatEventData(event: any): EventData {
+  return {
+    id: event.code,
+    title: event.name,
+    description: event.description || '',
+    date: formatDate(event.date),
+    raw_date: event.date,
+    time_start: formatTime(event.time_start),
+    raw_time_start: event.time_start,
+    time_end: formatTime(event.time_end),
+    location: event.location,
+    maps_link: event.maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(event.location)}`,
+    isParent: event.parent_event_id === null,
+    parentEventId: event.parent_event_id,
+    canRsvp: true, // Default to true for public endpoint
+    rsvpDeadline: event.rsvp_deadline ? new Date(event.rsvp_deadline) : null,
+    disabled: false
+  };
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { eventId: string } }
@@ -79,23 +101,34 @@ export async function GET(
     }
 
     // Format the event data for the frontend
-    const formattedEvent: EventData = {
-      id: event.code,
-      title: event.name,
-      description: event.description || '',
-      date: formatDate(event.date),
-      time_start: formatTime(event.time_start),
-      time_end: formatTime(event.time_end),
-      location: event.location,
-      maps_link: event.maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(event.location)}`,
-      isParent: event.parent_event_id === null,
-      parentEventId: event.parent_event_id,
-      canRsvp: true, // Default to true for public endpoint
-      rsvpDeadline: event.rsvp_deadline ? new Date(event.rsvp_deadline) : null,
-      disabled: false
-    };
+    const formattedEvent = formatEventData(event);
 
-    return NextResponse.json({ event: formattedEvent });
+    // If this is a parent event, fetch its child events
+    let childEvents: EventData[] = [];
+    if (formattedEvent.isParent) {
+      try {
+        // Fetch child events from Supabase
+        const { data: childEventData, error: childEventError } = await supabaseAdmin
+          .from('events')
+          .select('*')
+          .eq('parent_event_id', event.id)
+          .eq('is_active', true);
+
+        if (childEventError) {
+          console.error('Error fetching child events:', childEventError);
+        } else if (childEventData && childEventData.length > 0) {
+          // Format child events
+          childEvents = childEventData.map(childEvent => formatEventData(childEvent));
+        }
+      } catch (childError) {
+        console.error('Error fetching child events:', childError);
+      }
+    }
+
+    return NextResponse.json({ 
+      event: formattedEvent,
+      childEvents: childEvents
+    });
   } catch (error) {
     console.error('Error fetching event:', error);
     return NextResponse.json(

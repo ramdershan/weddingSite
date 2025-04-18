@@ -365,20 +365,6 @@ export default function Home() {
                           <p className="text-muted-foreground text-sm md:text-base">
                             {event.description || `Join us for the ${event.title} at ${event.location}.`}
                           </p>
-                          <div className="mt-2 flex items-center text-sm">
-                            <Clock className="h-3 w-3 mr-1 text-primary" />
-                            <span className="text-primary">{event.time_start} {event.time_end ? `- ${event.time_end}` : ''}</span>
-                            <span className="mx-2">|</span>
-                            <MapPin className="h-3 w-3 mr-1 text-primary" />
-                            <a 
-                              href={event.maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(event.location)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              {event.location}
-                            </a>
-                          </div>
                         </div>
                       </div>
                     </div>

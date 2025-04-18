@@ -253,7 +253,7 @@ export const GuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     console.log('[Guest Context] Clearing guest session...');
     
     // Create and show overlay for logout animation
-    let overlay = null;
+    let overlay: HTMLDivElement | null = null;
     if (typeof document !== 'undefined') {
       overlay = createLogoutOverlay();
     }

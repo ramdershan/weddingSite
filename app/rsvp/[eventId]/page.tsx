@@ -32,6 +32,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   
   const [response, setResponse] = useState<"Yes" | "No" | "Maybe">("Yes");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string>('');
+  const [dietaryManuallyEdited, setDietaryManuallyEdited] = useState<boolean>(false);
   const [plusOne, setPlusOne] = useState<boolean>(false);
   const [adultCount, setAdultCount] = useState<number>(0);
   const [childrenCount, setChildrenCount] = useState<number>(0);
@@ -46,6 +47,20 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   
   // State for tracking if guest has already responded
   const [hasResponded, setHasResponded] = useState<boolean>(false);
+  
+  // Save the dietary value when switching to "No" and restore it when switching back
+  const [savedDietaryValue, setSavedDietaryValue] = useState<string>('');
+  
+  // Define the exact order we want for events by their IDs - same as the timeline order
+  const eventOrder: {[key: string]: number} = {
+    'engagement': 1,
+    'mehndi': 2, 
+    'haldi': 3,
+    'sangeet': 4,
+    'wedding': 5,
+    'ceremony': 6, // Including both possible IDs for the wedding ceremony
+    'reception': 7
+  };
   
   // Set a minimum loading time of 2.5 seconds
   useEffect(() => {
@@ -92,11 +107,54 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           );
           
           if (availableChildEvents.length > 0) {
-            setChildEvents(availableChildEvents);
+            // Sort child events in the same order as the timeline
+            const sortedChildEvents = [...availableChildEvents].sort((a, b) => {
+              try {
+                // Get position in the predefined order
+                const orderA = eventOrder[a.id] || 999; // Default to high number if not in order map
+                const orderB = eventOrder[b.id] || 999;
+                
+                // First sort by our predefined order
+                if (orderA !== orderB) {
+                  return orderA - orderB;
+                }
+                
+                // If same type of event (unlikely), fallback to date/time sort
+                const dateAStr = a.raw_date || '1970-01-01';
+                const dateBStr = b.raw_date || '1970-01-01';
+                
+                const [yearA, monthA, dayA] = dateAStr.split('-').map(Number);
+                const [yearB, monthB, dayB] = dateBStr.split('-').map(Number);
+                
+                // Compare Year
+                if (yearA !== yearB) return yearA - yearB;
+                // Compare Month
+                if (monthA !== monthB) return monthA - monthB;
+                // Compare Day
+                if (dayA !== dayB) return dayA - dayB;
+                
+                // Only if same day, compare time
+                const timeAStr = a.raw_time_start || '00:00:00';
+                const timeBStr = b.raw_time_start || '00:00:00';
+                
+                const [hourA, minuteA] = timeAStr.split(':').map(Number);
+                const [hourB, minuteB] = timeBStr.split(':').map(Number);
+                
+                // Compare Hour
+                if (hourA !== hourB) return hourA - hourB;
+                // Compare Minute
+                return minuteA - minuteB;
+              } catch (err) {
+                console.error("Error during child events sort (Manual Order):", err, "Event A:", a, "Event B:", b);
+                return 0; // Prevent crash
+              }
+            });
+            
+            setChildEvents(sortedChildEvents);
             
             // Initialize selected state based on previous responses
             const initialSelectedState: Record<string, boolean> = {};
-            availableChildEvents.forEach(childEvent => {
+            sortedChildEvents.forEach(childEvent => {
               // Default to true if guest has already RSVP'd yes to this event
               const hasResponded = guest?.eventResponses?.[childEvent.id]?.response === "Yes";
               initialSelectedState[childEvent.id] = hasResponded;
@@ -114,7 +172,26 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       // No events in context, try to fetch specific event
       fetchEventDetails();
     }
-  }, [eventId, events, guest, router, toast]);
+  }, [eventId, events, guest, router, toast, eventOrder]);
+  
+  // Reset the manually edited flag whenever the guest changes
+  useEffect(() => {
+    if (guest) {
+      // Reset the flag when a new guest is loaded
+      setDietaryManuallyEdited(false);
+    }
+  }, [guest?.id]); // Only trigger when the guest ID changes
+  
+  // Save the dietary value when switching to "No" and restore it when switching back
+  useEffect(() => {
+    // When response changes to "No", save the current dietary value
+    if (response === "No") {
+      setSavedDietaryValue(dietaryRestrictions);
+    } else if (savedDietaryValue && (response === "Yes" || response === "Maybe")) {
+      // When switching back from "No" to another option, restore the saved value
+      setDietaryRestrictions(savedDietaryValue);
+    }
+  }, [response]);
   
   // Fetch event details from API
   const fetchEventDetails = async () => {
@@ -146,6 +223,65 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           maps_link: data.event.maps_link,
           isParent: data.event.isParent
         });
+        
+        // If there are child events in the API response, process them
+        if (data.event.isParent && data.childEvents && data.childEvents.length > 0) {
+          // Sort child events in the same order as the timeline
+          const sortedChildEvents = [...data.childEvents].sort((a, b) => {
+            try {
+              // Get position in the predefined order
+              const orderA = eventOrder[a.id] || 999; // Default to high number if not in order map
+              const orderB = eventOrder[b.id] || 999;
+              
+              // First sort by our predefined order
+              if (orderA !== orderB) {
+                return orderA - orderB;
+              }
+              
+              // If same type of event (unlikely), fallback to date/time sort
+              const dateAStr = a.raw_date || '1970-01-01';
+              const dateBStr = b.raw_date || '1970-01-01';
+              
+              const [yearA, monthA, dayA] = dateAStr.split('-').map(Number);
+              const [yearB, monthB, dayB] = dateBStr.split('-').map(Number);
+              
+              // Compare Year
+              if (yearA !== yearB) return yearA - yearB;
+              // Compare Month
+              if (monthA !== monthB) return monthA - monthB;
+              // Compare Day
+              if (dayA !== dayB) return dayA - dayB;
+              
+              // Only if same day, compare time
+              const timeAStr = a.raw_time_start || '00:00:00';
+              const timeBStr = b.raw_time_start || '00:00:00';
+              
+              const [hourA, minuteA] = timeAStr.split(':').map(Number);
+              const [hourB, minuteB] = timeBStr.split(':').map(Number);
+              
+              // Compare Hour
+              if (hourA !== hourB) return hourA - hourB;
+              // Compare Minute
+              return minuteA - minuteB;
+            } catch (err) {
+              console.error("Error during API child events sort:", err, "Event A:", a, "Event B:", b);
+              return 0; // Prevent crash
+            }
+          });
+          
+          setChildEvents(sortedChildEvents);
+          
+          // Initialize selected state based on previous responses if guest exists
+          if (guest) {
+            const initialSelectedState: Record<string, boolean> = {};
+            sortedChildEvents.forEach(childEvent => {
+              // Default to true if guest has already RSVP'd yes to this event
+              const hasResponded = guest?.eventResponses?.[childEvent.id]?.response === "Yes";
+              initialSelectedState[childEvent.id] = hasResponded;
+            });
+            setSelectedChildEvents(initialSelectedState);
+          }
+        }
       } else {
         // API error, redirect to home
         toast({
@@ -222,30 +358,26 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     if (!guest) return;
     
     try {
-      // Pre-fill form if guest has already responded to this event
-      if (guest.responded && guest.eventResponses && guest.eventResponses[eventId]) {
-        const eventResponse = guest.eventResponses[eventId];
-        
-        // Set flag to indicate the guest has already responded
+      let initialDietary = guest.dietaryRestrictions || ''; // Start with the main dietary restriction
+      
+      // Check if guest has already responded to this specific event
+      const eventResponse = guest.eventResponses?.[eventId];
+      
+      if (eventResponse) {
+        // Guest HAS responded to this event
         setHasResponded(true);
         
-        // Fill in form with existing response data
+        // Fill in other form fields from this event's response
         setResponse(eventResponse.response || "Yes");
-        setDietaryRestrictions(eventResponse.dietaryRestrictions || '');
         setPlusOne(eventResponse.plusOne || false);
         
-        // Set adult and children counts from the response
-        if (eventResponse.adultCount !== undefined) {
-          setAdultCount(eventResponse.adultCount);
-        }
-        if (eventResponse.childrenCount !== undefined) {
-          setChildrenCount(eventResponse.childrenCount);
-        }
+        // Set counts
+        setAdultCount(eventResponse.adultCount ?? (eventResponse.plusOneCount || 0));
+        setChildrenCount(eventResponse.childrenCount ?? 0);
         
-        // For backward compatibility
-        if (eventResponse.plusOneCount && eventResponse.adultCount === undefined) {
-          setAdultCount(eventResponse.plusOneCount);
-        }
+        // Update initialDietary ONLY if the event-specific one has a value
+        // Otherwise, keep the value from guest.dietaryRestrictions
+        initialDietary = guest.dietaryRestrictions || eventResponse.dietaryRestrictions || '';
         
         // Check for child event responses if this is a parent event
         if (childEvents.length > 0) {
@@ -256,7 +388,15 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           });
           setSelectedChildEvents(updatedSelectedEvents);
         }
+      } 
+      // No specific else needed here because initialDietary is already set
+      // based on guest.dietaryRestrictions outside the if block.
+      
+      // Only set the dietary state if it hasn't been manually edited by user
+      if (!dietaryManuallyEdited) {
+        setDietaryRestrictions(initialDietary);
       }
+
     } catch (error) {
       toast({
         title: "Error",
@@ -670,9 +810,19 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                     id="dietary"
                     placeholder="Please let us know if you have any dietary restrictions or allergies"
                     value={dietaryRestrictions}
-                    onChange={(e) => setDietaryRestrictions(e.target.value)}
+                    onChange={(e) => {
+                      // Limit input to 150 characters
+                      if (e.target.value.length <= 150) {
+                        setDietaryRestrictions(e.target.value);
+                        setDietaryManuallyEdited(true); // Mark as manually edited
+                      }
+                    }}
                     disabled={response === "No"}
+                    maxLength={150}
                   />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {dietaryRestrictions.length}/150 characters
+                  </p>
                 </div>
 
                 <div className="flex flex-col space-y-2">
