@@ -268,8 +268,8 @@ export default function Home() {
         <div 
           className="absolute inset-0 bg-cover md:bg-cover lg:bg-[length:110%_auto] xl:bg-[length:90%_auto] bg-center"
           style={{ 
-            backgroundImage: "url('/picture2.jpg')",
-            backgroundPosition: "center 60%"
+            backgroundImage: "url('/yr_hero.jpg')",
+            backgroundPosition: "center 100%"
           }}
         />
         
@@ -316,7 +316,7 @@ export default function Home() {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
                 <img 
-                  src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80"
+                  src="yr_ourstory.jpeg"
                   alt="Couple"
                   className="rounded-lg border border-white/10"
                   style={{
@@ -327,13 +327,13 @@ export default function Home() {
               <div className="space-y-6">
                 <h3 className="text-2xl font-serif">How We Met</h3>
                 <p className="text-muted-foreground">
-                  Our journey began in the vibrant city of Kelowna, where a chance encounter in class turned into a beautiful friendship. What started as a simple conversation over assignments blossomed into something truly special.
+                  Our journey began in the small city of Kelowna, where a chance encounter in class turned into a sweet friendship. As we graduated, the world changed around us in the early days of the pandemic and we found comfort in each other's company.
                 </p>
                 <p className="text-muted-foreground">
                   Through shared laughter, countless late-night conversations, and lots of FaceTime, we've grown together and discovered that we're truly better as a team.
                 </p>
                 <p className="text-muted-foreground">
-                  Now, we're ready to begin our next chapter together, and we couldn't be more excited to share this moment with our loved ones.
+                  Now, with full hearts and deep gratitude, we're excited to begin the next chapter - together with our loved ones.
                 </p>
               </div>
             </div>
