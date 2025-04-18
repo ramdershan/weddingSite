@@ -82,6 +82,8 @@ export async function GET(
       id: event.code,
       title: event.name,
       description: event.description || '',
+      raw_date: event.date,
+      raw_time_start: event.time_start,
       date: formatDate(event.date),
       time_start: formatTime(event.time_start),
       time_end: formatTime(event.time_end),
