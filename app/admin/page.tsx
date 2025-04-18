@@ -509,13 +509,13 @@ export default function AdminDashboard() {
               />
               <StatCard 
                 title="Overall Responded" 
-                value={summary?.responded || 0}
+                value={summary?.responded || 0} 
                 icon={<CheckCircle className="h-5 w-5 text-green-500" />}
                 description={`${((summary?.responded || 0) / (summary?.invitedGuests || 1) * 100).toFixed(0)}% response rate`}
               />
               <StatCard 
                 title="Overall Pending" 
-                value={summary?.notResponded || 0}
+                value={summary?.notResponded || 0} 
                 icon={<HelpCircle className="h-5 w-5 text-amber-500" />}
                 description="Awaiting response from guests"
               />
@@ -582,7 +582,7 @@ export default function AdminDashboard() {
 
                 {/* Engagement Tab Content */}
                 {activeEventTab === 'engagement' && (
-                  <EventTab
+                  <EventTab 
                     eventId="engagement"
                     eventName="Engagement Ceremony"
                     stats={summary?.events.engagement}
@@ -603,9 +603,9 @@ export default function AdminDashboard() {
                     </div>
                     
                     {/* Main Wedding Ceremony EventTab */}
-                    <EventTab
-                       eventId="wedding"
-                       eventName="Wedding Ceremony"
+                  <EventTab 
+                    eventId="wedding"
+                    eventName="Wedding Ceremony"
                        stats={summary?.events.wedding}
                        onDownload={() => handleDownloadCSV('wedding')} // Can still download specific
                     />
@@ -628,7 +628,7 @@ export default function AdminDashboard() {
                 
                 {/* Reception Tab Content */}
                 {activeEventTab === 'reception' && (
-                  <EventTab
+                  <EventTab 
                     eventId="reception"
                     eventName="Reception"
                     stats={summary?.events.reception}
@@ -654,7 +654,7 @@ export default function AdminDashboard() {
                       Object.entries(dietaryRestrictions)
                         .sort(([eventA], [eventB]) => {
                           // Define order only once
-                          const order = ['engagement', 'wedding', 'sangeet', 'haldi', 'mehndi', 'reception']; 
+                          const order = ['engagement', 'wedding', 'haldi', 'sangeet', 'mehndi', 'reception'];
                           return order.indexOf(eventA) - order.indexOf(eventB);
                         })
                         .map(([eventId, restrictionsList]) => (
@@ -692,12 +692,12 @@ export default function AdminDashboard() {
                   
                   {/* View dietary restrictions by guest */}
                   <TabsContent value="by-guest">
-                    <Card>
-                      <CardHeader>
+              <Card>
+                <CardHeader>
                         <CardTitle>Guest Dietary Requirements</CardTitle>
                         <CardDescription>All guests with registered dietary restrictions</CardDescription>
-                      </CardHeader>
-                      <CardContent>
+                </CardHeader>
+                <CardContent>
                         {(() => {
                           // Create a map of guests to their dietary restrictions
                           const guestRestrictions = new Map<string, { restriction: string, events: string[] }>();
@@ -729,7 +729,7 @@ export default function AdminDashboard() {
                             .sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
                           
                           return (
-                            <div className="space-y-4">
+                    <div className="space-y-4">
                               {guestList.map(([name, data], index) => (
                                 <Card key={`guest-${index}`} className="border-l-4 border-l-purple-500">
                                   <CardContent className="p-4">
@@ -738,23 +738,23 @@ export default function AdminDashboard() {
                                       <p className="text-muted-foreground mb-2">{data.restriction}</p>
                                       <div className="flex flex-wrap gap-2 mt-1">
                                         {data.events.sort((a, b) => {
-                                          const order = ['engagement', 'wedding', 'sangeet', 'haldi', 'mehndi', 'reception'];
+                                          const order = ['engagement', 'wedding', 'haldi', 'sangeet', 'mehndi', 'reception'];
                                           return order.indexOf(a) - order.indexOf(b);
                                         }).map(eventId => (
                                           <Badge key={eventId} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                             {EVENT_DISPLAY_NAMES[eventId] || eventId}
                                           </Badge>
                                         ))}
-                                      </div>
-                                    </div>
+                          </div>
+                        </div>
                                   </CardContent>
                                 </Card>
-                              ))}
-                            </div>
+                      ))}
+                    </div>
                           );
                         })()}
-                      </CardContent>
-                    </Card>
+                </CardContent>
+              </Card>
                   </TabsContent>
                 </Tabs>
               </div>
@@ -776,8 +776,8 @@ export default function AdminDashboard() {
                   
                   <TabsContent value="all">
                     <GuestDataTable 
-                      guests={guests} 
-                      title="All Guests"
+                    guests={guests} 
+                    title="All Guests" 
                       description={`${guests.length} guests in total`}
                       onDownload={() => handleDownloadCSV('all')}
                       dataType="all"
@@ -787,23 +787,23 @@ export default function AdminDashboard() {
                   <TabsContent value="engagement">
                     <GuestDataTable 
                       guests={guests.filter(guest => guest.eventResponses?.engagement)} 
-                      title="Engagement Ceremony Guests"
+                    title="Engagement Ceremony Guests" 
                       description={`Guests with Engagement Ceremony responses`}
-                      onDownload={() => handleDownloadCSV('engagement')}
+                    onDownload={() => handleDownloadCSV('engagement')} 
                       dataType="event"
-                      eventId="engagement"
-                    />
+                    eventId="engagement"
+                  />
                   </TabsContent>
                   
                   <TabsContent value="wedding">
                     <GuestDataTable 
                       guests={guests.filter(guest => guest.eventResponses?.wedding)} 
-                      title="Wedding Ceremony Guests"
+                    title="Wedding Ceremony Guests" 
                       description={`Guests with Wedding Ceremony responses`}
-                      onDownload={() => handleDownloadCSV('wedding')}
+                    onDownload={() => handleDownloadCSV('wedding')} 
                       dataType="event"
-                      eventId="wedding"
-                    />
+                    eventId="wedding"
+                  />
                   </TabsContent>
                   
                   <TabsContent value="sangeet">
@@ -842,12 +842,12 @@ export default function AdminDashboard() {
                   <TabsContent value="reception">
                     <GuestDataTable 
                       guests={guests.filter(guest => guest.eventResponses?.reception)} 
-                      title="Reception Guests"
+                    title="Reception Guests" 
                       description={`Guests with Reception responses`}
-                      onDownload={() => handleDownloadCSV('reception')}
+                    onDownload={() => handleDownloadCSV('reception')} 
                       dataType="event"
-                      eventId="reception"
-                    />
+                    eventId="reception"
+                  />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -917,7 +917,7 @@ function EventTab({
               <div className="flex items-center text-green-600">
                 <CheckCircle className="mr-2 h-5 w-5" />
                 Attending
-              </div>
+            </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -932,7 +932,7 @@ function EventTab({
               <div className="flex items-center text-amber-600">
                 <HelpCircle className="mr-2 h-5 w-5" />
                 Maybe
-              </div>
+            </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -947,7 +947,7 @@ function EventTab({
               <div className="flex items-center text-red-600">
                 <XCircle className="mr-2 h-5 w-5" />
                 Not Attending
-              </div>
+            </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -962,7 +962,7 @@ function EventTab({
               <div className="flex items-center text-blue-600">
                 <Users className="mr-2 h-5 w-5" />
                 Total Invited
-              </div>
+            </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1018,7 +1018,7 @@ function StatCard({
   icon, 
   description 
 }: { 
-  title: string; 
+  title: string;
   value: number; 
   icon: React.ReactNode;
   description: string;

@@ -102,12 +102,14 @@ export async function getGuestEvents(guestId: string): Promise<{events: Supabase
     // Get only the events with RSVP access
     const eventIds = accessData.map(access => access.event_id);
     
-    // Fetch the events
+    // Fetch the events, ordered by date and then start time
     const { data: eventsData, error: eventsError } = await supabaseAdmin
       .from('events')
       .select('*')
       .in('id', eventIds)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .order('date', { ascending: true })
+      .order('time_start', { ascending: true });
 
     if (eventsError) {
       console.error('Error fetching events:', eventsError);
