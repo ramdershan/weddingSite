@@ -266,10 +266,13 @@ export default function Home() {
       <section className="relative h-screen flex items-center justify-center overflow-hidden" id="home">
         <div className="absolute inset-0 bg-black/20 z-10" />
         <div 
-          className="absolute inset-0 bg-cover md:bg-cover lg:bg-[length:110%_auto] xl:bg-[length:90%_auto] bg-center"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ 
             backgroundImage: "url('/yr_hero.jpg')",
-            backgroundPosition: "center 100%"
+            backgroundSize: "cover",
+            backgroundPosition: "center bottom",
+            height: "100%",
+            width: "100%"
           }}
         />
         
