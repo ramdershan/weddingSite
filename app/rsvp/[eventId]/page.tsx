@@ -32,7 +32,6 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   
   const [response, setResponse] = useState<"Yes" | "No" | "Maybe">("Yes");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string>('');
-  const [dietaryManuallyEdited, setDietaryManuallyEdited] = useState<boolean>(false);
   const [plusOne, setPlusOne] = useState<boolean>(false);
   const [adultCount, setAdultCount] = useState<number>(0);
   const [childrenCount, setChildrenCount] = useState<number>(0);
@@ -50,6 +49,12 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   
   // Save the dietary value when switching to "No" and restore it when switching back
   const [savedDietaryValue, setSavedDietaryValue] = useState<string>('');
+  
+  // Add new state flags
+  const [responseManuallyEdited, setResponseManuallyEdited] = useState<boolean>(false);
+  const [dietaryManuallyEdited, setDietaryManuallyEdited] = useState<boolean>(false);
+  const [plusOneManuallyEdited, setPlusOneManuallyEdited] = useState<boolean>(false);
+  const [childEventsManuallyEdited, setChildEventsManuallyEdited] = useState<boolean>(false);
   
   // Define the exact order we want for events by their IDs - same as the timeline order
   const eventOrder: {[key: string]: number} = {
@@ -159,7 +164,11 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
               const hasResponded = guest?.eventResponses?.[childEvent.id]?.response === "Yes";
               initialSelectedState[childEvent.id] = hasResponded;
             });
-            setSelectedChildEvents(initialSelectedState);
+            
+            // Only set the child events if they haven't been manually edited
+            if (!childEventsManuallyEdited) {
+              setSelectedChildEvents(initialSelectedState);
+            }
           }
         }
         
@@ -174,21 +183,22 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     }
   }, [eventId, events, guest, router, toast, eventOrder]);
   
-  // Reset the manually edited flag whenever the guest changes
+  // Reset the manually edited flags whenever the guest changes
   useEffect(() => {
     if (guest) {
-      // Reset the flag when a new guest is loaded
+      // Reset the flags when a new guest is loaded
       setDietaryManuallyEdited(false);
+      setResponseManuallyEdited(false);
+      setPlusOneManuallyEdited(false);
+      setChildEventsManuallyEdited(false);
     }
   }, [guest?.id]); // Only trigger when the guest ID changes
   
   // Save the dietary value when switching to "No" and restore it when switching back
   useEffect(() => {
-    // When response changes to "No", save the current dietary value
     if (response === "No") {
       setSavedDietaryValue(dietaryRestrictions);
     } else if (savedDietaryValue && (response === "Yes" || response === "Maybe")) {
-      // When switching back from "No" to another option, restore the saved value
       setDietaryRestrictions(savedDietaryValue);
     }
   }, [response]);
@@ -279,7 +289,11 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
               const hasResponded = guest?.eventResponses?.[childEvent.id]?.response === "Yes";
               initialSelectedState[childEvent.id] = hasResponded;
             });
-            setSelectedChildEvents(initialSelectedState);
+            
+            // Only set the child events if they haven't been manually edited
+            if (!childEventsManuallyEdited) {
+              setSelectedChildEvents(initialSelectedState);
+            }
           }
         }
       } else {
@@ -358,29 +372,31 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     if (!guest) return;
     
     try {
-      let initialDietary = guest.dietaryRestrictions || ''; // Start with the main dietary restriction
-      
-      // Check if guest has already responded to this specific event
+      let initialDietary = guest.dietaryRestrictions || '';
       const eventResponse = guest.eventResponses?.[eventId];
       
       if (eventResponse) {
-        // Guest HAS responded to this event
         setHasResponded(true);
         
-        // Fill in other form fields from this event's response
-        setResponse(eventResponse.response || "Yes");
-        setPlusOne(eventResponse.plusOne || false);
+        // Apply flags before setting state
+        if (!responseManuallyEdited) {
+          setResponse(eventResponse.response || "Yes");
+        }
+        if (!plusOneManuallyEdited) {
+          const initialPlusOne = eventResponse.plusOne || false;
+          setPlusOne(initialPlusOne);
+          // Only set counts if plusOne is initially true AND not manually edited
+          if (initialPlusOne) { 
+             setAdultCount(eventResponse.adultCount ?? (eventResponse.plusOneCount || 0));
+             setChildrenCount(eventResponse.childrenCount ?? 0);
+          }
+        }
         
-        // Set counts
-        setAdultCount(eventResponse.adultCount ?? (eventResponse.plusOneCount || 0));
-        setChildrenCount(eventResponse.childrenCount ?? 0);
-        
-        // Update initialDietary ONLY if the event-specific one has a value
-        // Otherwise, keep the value from guest.dietaryRestrictions
         initialDietary = guest.dietaryRestrictions || eventResponse.dietaryRestrictions || '';
         
         // Check for child event responses if this is a parent event
-        if (childEvents.length > 0) {
+        // Only initialize child events if they haven't been manually edited
+        if (childEvents.length > 0 && !childEventsManuallyEdited) {
           const updatedSelectedEvents: Record<string, boolean> = {};
           childEvents.forEach(childEvent => {
             const childResponse = guest.eventResponses?.[childEvent.id];
@@ -389,10 +405,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           setSelectedChildEvents(updatedSelectedEvents);
         }
       } 
-      // No specific else needed here because initialDietary is already set
-      // based on guest.dietaryRestrictions outside the if block.
       
-      // Only set the dietary state if it hasn't been manually edited by user
       if (!dietaryManuallyEdited) {
         setDietaryRestrictions(initialDietary);
       }
@@ -404,7 +417,6 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         variant: "destructive",
       });
     } finally {
-      // Mark data loading as complete, but actual display will depend on minimumLoadingComplete
       setDataLoadingComplete(true);
     }
   };
@@ -694,7 +706,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                   <Label>Will you be attending the {eventDetails.title}?</Label>
                   <RadioGroup 
                     value={response} 
-                    onValueChange={(value) => setResponse(value as "Yes" | "No" | "Maybe")}
+                    onValueChange={(value) => {
+                      setResponse(value as "Yes" | "No" | "Maybe");
+                      setResponseManuallyEdited(true);
+                    }}
                     className="flex flex-col space-y-2"
                   >
                     <div className="flex items-center space-x-2">
@@ -712,7 +727,6 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                   </RadioGroup>
                 </div>
                 
-                {/* Add child events section if this is a parent event */}
                 {childEvents.length > 0 && response !== "No" && (
                   <div className="mt-4 mb-1">
                     <p className="text-sm text-muted-foreground mb-2">
@@ -733,6 +747,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                                 ...selectedChildEvents,
                                 [childEvent.id]: e.target.checked
                               });
+                              setChildEventsManuallyEdited(true);
                             }}
                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                             disabled={response !== "Yes" && response !== "Maybe"}
@@ -758,7 +773,14 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                     <Switch 
                       id="plusOne" 
                       checked={plusOne}
-                      onCheckedChange={setPlusOne}
+                      onCheckedChange={(checked) => {
+                        setPlusOne(checked);
+                        setPlusOneManuallyEdited(true);
+                        if (!checked) {
+                          setAdultCount(0);
+                          setChildrenCount(0);
+                        }
+                      }}
                       disabled={response === "No"}
                     />
                   </div>
@@ -773,7 +795,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                           min="0"
                           max="5"
                           value={adultCount}
-                          onChange={(e) => setAdultCount(parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                            setAdultCount(parseInt(e.target.value) || 0);
+                            setPlusOneManuallyEdited(true);
+                          }}
                           className="mt-1"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
@@ -789,7 +814,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                           min="0"
                           max="5"
                           value={childrenCount}
-                          onChange={(e) => setChildrenCount(parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                             setChildrenCount(parseInt(e.target.value) || 0);
+                             setPlusOneManuallyEdited(true);
+                           }}
                           className="mt-1"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
@@ -811,10 +839,9 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                     placeholder="Please let us know if you have any dietary restrictions or allergies"
                     value={dietaryRestrictions}
                     onChange={(e) => {
-                      // Limit input to 150 characters
                       if (e.target.value.length <= 150) {
                         setDietaryRestrictions(e.target.value);
-                        setDietaryManuallyEdited(true); // Mark as manually edited
+                        setDietaryManuallyEdited(true);
                       }
                     }}
                     disabled={response === "No"}
