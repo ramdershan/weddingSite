@@ -5,13 +5,12 @@ import { validateSessionTokenEdge, validateAdminSessionEdge } from '@/lib/edge-v
 const PUBLIC_PATHS = [
   '/guest-login',          // The login page itself
   '/api/guest',            // API route for checking guest name and creating session
-  '/api/auth/',            // Allow other potential auth API routes (like validation)
+  '/api/auth/',            // Allow other potential guest auth API routes (like validation)
   '/admin/login',          // Admin login page
-  '/api/admin/',           // Admin API routes - critical for auth and dashboard
-  '/api/admin/auth',       // Admin authentication API
-  '/api/admin/login',      // Admin login API endpoint
-  '/api/admin/logout',     // Admin logout API endpoint
-  '/api/admin/auth/validate', // Admin validation endpoint
+  '/api/admin/auth',       // Admin authentication API (still needs to be public)
+  '/api/admin/login',      // Admin login API endpoint (still needs to be public)
+  '/api/admin/logout',     // Admin logout API endpoint (still needs to be public)
+  '/api/admin/auth/validate', // Admin validation endpoint (still needs to be public)
   // Static assets and Next.js internals
   '/favicon.ico',
   '/images/',
@@ -20,18 +19,23 @@ const PUBLIC_PATHS = [
   '/_next/',
 ];
 
-// Admin paths pattern (used to identify admin routes)
-const ADMIN_PATH_PATTERN = /^\/admin(?:\/|$)/;
+// Admin paths pattern (used to identify admin routes AND admin API routes)
+const ADMIN_PATH_PATTERN = /^\/(admin|api\/admin)(?:\/|$)/;
 
 // Helper function to check if a path is public
 function isPublicPath(pathname: string): boolean {
+  // Special check for API admin routes that MUST be public
+  if (pathname === '/api/admin/login' || pathname === '/api/admin/logout' || pathname === '/api/admin/auth' || pathname === '/api/admin/auth/validate') {
+    return true;
+  }
+  
   // Check for exact match or if path starts with a public directory path
   return PUBLIC_PATHS.some(publicPath => 
     pathname === publicPath || (publicPath.endsWith('/') && pathname.startsWith(publicPath))
   );
 }
 
-// Helper function to check if a path is an admin path
+// Helper function to check if a path is an admin path (UI or API)
 function isAdminPath(pathname: string): boolean {
   return ADMIN_PATH_PATTERN.test(pathname);
 }
@@ -70,7 +74,7 @@ export async function middleware(request: NextRequest) {
   // DEBUGGING: Log all middleware checks
   console.log(`[Middleware] Checking path: ${pathname}`);
   
-  // Check if the current path is public
+  // Check if the current path is public FIRST
   if (isPublicPath(pathname)) {
     console.log(`[Middleware] Allowing public path: ${pathname}`);
     return NextResponse.next({
@@ -80,7 +84,7 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  // --- Check if path is an admin path ---
+  // --- Check if path is an admin path (UI or API) ---
   if (isAdminPath(pathname)) {
     console.log(`[Middleware] Admin authentication required for: ${pathname}`);
     
@@ -106,6 +110,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // --- Path requires guest authentication --- 
+  // This block should only be reached if it's NOT public and NOT admin
   console.log(`[Middleware] Guest authentication required for: ${pathname}`);
 
   // Check for the session cookie

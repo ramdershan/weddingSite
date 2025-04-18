@@ -313,13 +313,18 @@ export default function AdminDashboard() {
       }
 
       // Fetch guest list data
+      console.log('[Admin Page] Fetching guest list data...');
       const guestsResponse = await fetch('/api/admin');
       if (guestsResponse.ok) {
         const guestsData = await guestsResponse.json();
+        console.log('[Admin Page] Raw guest data received from API:', guestsData);
+        
         const fetchedGuests: Guest[] = guestsData.guests || [];
+        console.log('[Admin Page] Processed guest list (for Guest Data tab):', fetchedGuests);
         setGuests(fetchedGuests);
         
         // Process dietary restrictions - Group by event
+        console.log('[Admin Page] Processing dietary restrictions...');
         const eventRestrictionsMap: Record<string, DietaryInfo[]> = {};
 
         fetchedGuests.forEach((guest: Guest) => {
@@ -352,8 +357,10 @@ export default function AdminDashboard() {
           }
         });
         
+        console.log('[Admin Page] Processed dietary restrictions map (for Dietary tab):', eventRestrictionsMap);
         setDietaryRestrictions(eventRestrictionsMap);
       } else {
+        console.error('[Admin Page] Failed to load guest list data, status:', guestsResponse.status);
         toast({
           title: "Error",
           description: "Failed to load guest list data",
