@@ -493,7 +493,6 @@ export async function updateGuestResponse(
         guest_id: guestId,
         event_id: event.id,
         response: dbResponse,
-        dietary_restrictions: responseData.dietaryRestrictions || '',
         has_plus_ones: hasPlusOnes,
         plus_one_count: plusOneCount,
         adult_count: String(hasPlusOnes ? adultCount : 0),
@@ -544,7 +543,6 @@ export async function updateGuestResponse(
           guest_id: guestId,
           event_id: childEvent.id,
           response: "No", // Auto-decline
-          dietary_restrictions: '', // Clear any dietary restrictions
           has_plus_ones: false, // No plus ones for declined events
           plus_one_count: "0", 
           adult_count: "0",
@@ -589,7 +587,6 @@ export async function updateGuestResponse(
             guest_id: guestId,
             event_id: event.parent_event_id,
             response: "Maybe", // Set to Maybe as a minimum
-            dietary_restrictions: responseData.dietaryRestrictions || '',
             has_plus_ones: hasPlusOnes,
             plus_one_count: plusOneCount,
             adult_count: String(hasPlusOnes ? adultCount : 0),

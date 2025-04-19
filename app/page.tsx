@@ -321,7 +321,7 @@ export default function Home() {
                 <img 
                   src="yr_ourstory.jpeg"
                   alt="Couple"
-                  className="rounded-lg border border-white/10"
+                  className="rounded-lg"
                   style={{
                     boxShadow: '0 0 30px rgba(0, 0, 0, 0.4)'
                   }}

@@ -392,7 +392,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           }
         }
         
-        initialDietary = guest.dietaryRestrictions || eventResponse.dietaryRestrictions || '';
+        // Remove fallback: Use guest's dietary restrictions only
+        initialDietary = guest.dietaryRestrictions || '';
         
         // Check for child event responses if this is a parent event
         // Only initialize child events if they haven't been manually edited
