@@ -24,7 +24,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: 'Yukti & Ram - Wedding Celebration',
+  title: 'Yukti & Ram - Wedding',
   description: 'Join us for our special day on January 24, 2026',
 };
 

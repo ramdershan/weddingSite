@@ -95,10 +95,21 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           return;
         }
         
+        // Determine which timezone to display based on event ID
+        const timezone = event.id === 'engagement' ? 'MST' : 'IST';
+        
         setEventDetails({
           title: event.title,
           date: event.date,
-          time: `${event.time_start}${event.time_end ? ' - ' + event.time_end : ''}`,
+          time: (
+            <span>
+              {event.time_start}{event.time_end ? ` - ${event.time_end}` : ''}
+              <span className="mx-1 text-muted-foreground/60">·</span>
+              <span className="text-muted-foreground/80 text-sm">
+                {timezone}
+              </span>
+            </span>
+          ),
           location: event.location,
           maps_link: event.maps_link,
           isParent: event.isParent
@@ -155,7 +166,24 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
               }
             });
             
-            setChildEvents(sortedChildEvents);
+            // Add timezone to each child event
+            const childEventsWithTimezone = sortedChildEvents.map(childEvent => {
+              const timezone = childEvent.id === 'engagement' ? 'MST' : 'IST';
+              return {
+                ...childEvent,
+                time_start: (
+                  <span>
+                    {childEvent.time_start}
+                    <span className="mx-1 text-muted-foreground/60">·</span>
+                    <span className="text-muted-foreground/80 text-sm">
+                      {timezone}
+                    </span>
+                  </span>
+                )
+              };
+            });
+            
+            setChildEvents(childEventsWithTimezone);
             
             // Initialize selected state based on previous responses
             const initialSelectedState: Record<string, boolean> = {};
@@ -225,10 +253,21 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           }
         }
         
+        // Determine which timezone to display based on event ID
+        const timezone = data.event.id === 'engagement' ? 'MST' : 'IST';
+        
         setEventDetails({
           title: data.event.title,
           date: data.event.date,
-          time: `${data.event.time_start}${data.event.time_end ? ' - ' + data.event.time_end : ''}`,
+          time: (
+            <span>
+              {data.event.time_start}{data.event.time_end ? ` - ${data.event.time_end}` : ''}
+              <span className="mx-1 text-muted-foreground/60">·</span>
+              <span className="text-muted-foreground/80 text-sm">
+                {timezone}
+              </span>
+            </span>
+          ),
           location: data.event.location,
           maps_link: data.event.maps_link,
           isParent: data.event.isParent
@@ -274,26 +313,45 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
               // Compare Minute
               return minuteA - minuteB;
             } catch (err) {
-              console.error("Error during API child events sort:", err, "Event A:", a, "Event B:", b);
+              console.error("Error during child events sort (API):", err, "Event A:", a, "Event B:", b);
               return 0; // Prevent crash
             }
           });
           
-          setChildEvents(sortedChildEvents);
+          // Add timezone to each child event
+          const childEventsWithTimezone = sortedChildEvents.map(childEvent => {
+            const timezone = childEvent.id === 'engagement' ? 'MST' : 'IST';
+            return {
+              ...childEvent,
+              time_start: (
+                <span>
+                  {childEvent.time_start}
+                  <span className="mx-1 text-muted-foreground/60">·</span>
+                  <span className="text-muted-foreground/80 text-sm">
+                    {timezone}
+                  </span>
+                </span>
+              )
+            };
+          });
           
-          // Initialize selected state based on previous responses if guest exists
-          if (guest) {
-            const initialSelectedState: Record<string, boolean> = {};
-            sortedChildEvents.forEach(childEvent => {
-              // Default to true if guest has already RSVP'd yes to this event
-              const hasResponded = guest?.eventResponses?.[childEvent.id]?.response === "Yes";
-              initialSelectedState[childEvent.id] = hasResponded;
-            });
-            
-            // Only set the child events if they haven't been manually edited
-            if (!childEventsManuallyEdited) {
-              setSelectedChildEvents(initialSelectedState);
+          setChildEvents(childEventsWithTimezone);
+          
+          // Initialize selected state for child events
+          const initialSelectedState: Record<string, boolean> = {};
+          sortedChildEvents.forEach(childEvent => {
+            // If the guest already responded, use that response
+            if (guest && guest.eventResponses && childEvent.id in guest.eventResponses) {
+              initialSelectedState[childEvent.id] = 
+                guest.eventResponses[childEvent.id].response === "Yes";
+            } else {
+              // Default to false otherwise
+              initialSelectedState[childEvent.id] = false;
             }
+          });
+          
+          if (!childEventsManuallyEdited) {
+            setSelectedChildEvents(initialSelectedState);
           }
         }
       } else {
@@ -770,7 +828,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
 
                 <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="plusOne">Will you bring guests?</Label>
+                    <Label htmlFor="plusOne">Will you bring family & guests?</Label>
                     <Switch 
                       id="plusOne" 
                       checked={plusOne}
@@ -829,7 +887,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                   )}
                   
                   <p className="text-sm text-muted-foreground">
-                    Please let us know if you'll be bringing guests.
+                    Please add additional guests, not including yourself, in the sections indicated above
                   </p>
                 </div>
                 

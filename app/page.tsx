@@ -34,7 +34,7 @@ function EventCard({
 }: { 
   title: string; 
   date: string; 
-  time: string; 
+  time: string | React.ReactNode; 
   location: string; 
   icon: React.ReactNode;
   eventId: string;
@@ -204,6 +204,21 @@ export default function Home() {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
         return dateA.getTime() - dateB.getTime();
+      }).map(event => {
+        // Add timezone indicator based on event ID
+        const timezone = event.id === 'engagement' ? 'MST' : 'IST';
+        return {
+          ...event,
+          time_display: (
+            <span>
+              {event.time_start}{event.time_end ? ` - ${event.time_end}` : ''}
+              <span className="mx-1 text-muted-foreground/60">·</span>
+              <span className="text-muted-foreground/80 text-sm">
+                {timezone}
+              </span>
+            </span>
+          )
+        };
       });
     }
     
@@ -227,12 +242,24 @@ export default function Home() {
           // Check if guest has already responded to this event
           const hasResponded = guest?.eventResponses && guest.eventResponses[event.id] ? true : false;
           
+          // Add timezone indicator based on event ID
+          const timezone = event.id === 'engagement' ? 'MST' : 'IST';
+          
           return {
             ...event,
             icon: getEventIcon(event.id),
             disabled: deadlineHasPassed,
             deadlineMessage,
-            hasResponded
+            hasResponded,
+            time_display: (
+              <span>
+                {event.time_start}{event.time_end ? ` - ${event.time_end}` : ''}
+                <span className="mx-1 text-muted-foreground/60">·</span>
+                <span className="text-muted-foreground/80 text-sm">
+                  {timezone}
+                </span>
+              </span>
+            )
           };
         });
     }
@@ -248,12 +275,27 @@ export default function Home() {
       // For non-logged-in users, only show parent events
       return events
         .filter(event => event.isParent)
-        .map(event => ({
-          ...event,
-          icon: getEventIcon(event.id),
-          hasResponded: false // Non-logged in users can't have responded
-        }));
+        .map(event => {
+          // Add timezone indicator based on event ID
+          const timezone = event.id === 'engagement' ? 'MST' : 'IST';
+          
+          return {
+            ...event,
+            icon: getEventIcon(event.id),
+            time_display: (
+              <span>
+                {event.time_start}{event.time_end ? ` - ${event.time_end}` : ''}
+                <span className="mx-1 text-muted-foreground/60">·</span>
+                <span className="text-muted-foreground/80 text-sm">
+                  {timezone}
+                </span>
+              </span>
+            ),
+            hasResponded: false // Non-logged in users can't have responded
+          };
+        });
     }
+    // Default to empty array
     return [];
   }, [events]);
   
@@ -382,6 +424,7 @@ export default function Home() {
                           <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
                           <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">{event.title}</h3>
                           <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">{event.date}</p>
+                          <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">{event.time_display}</p>
                         </div>
                         <div className="pl-10 md:mt-0 md:pl-8">
                           <p className="text-muted-foreground text-sm md:text-base">
@@ -421,7 +464,7 @@ export default function Home() {
                     key={event.id}
                     title={event.title} 
                     date={event.date} 
-                    time={`${event.time_start}${event.time_end ? ` - ${event.time_end}` : ''}`}
+                    time={event.time_display}
                     location={event.location}
                     icon={event.icon}
                     eventId={event.id}
@@ -448,7 +491,7 @@ export default function Home() {
                     key={event.id}
                     title={event.title} 
                     date={event.date} 
-                    time={`${event.time_start}${event.time_end ? ` - ${event.time_end}` : ''}`}
+                    time={event.time_display}
                     location={event.location}
                     icon={event.icon}
                     eventId={event.id}
@@ -459,7 +502,7 @@ export default function Home() {
                     onRsvpClick={handleRsvpClick}
                     showLocation={false}
                     maps_link={event.maps_link}
-                    hasResponded={false}
+                    hasResponded={event.hasResponded}
                   />
                 ))
               ) : (

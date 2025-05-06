@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getGuestByName, createGuestSession, getGuestEvents, getGuestResponses } from '@/lib/supabase';
+import { getGuestByName, createGuestSession, getGuestEvents, getGuestResponses, getGuestByPhoneNumber } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const fullName = searchParams.get('name');
+    const phoneNumber = searchParams.get('phone');
     const eventId = searchParams.get('eventId');
     
-    if (!fullName) {
+    if (!phoneNumber) {
       return NextResponse.json(
-        { error: 'Name parameter is required' },
+        { error: 'Phone number parameter is required' },
         { status: 400 }
       );
     }
     
-    // Check if guest exists in Supabase
-    const supabaseGuest = await getGuestByName(fullName);
+    // Validate phone number format (10 digits) - already sanitized by client, but good to double check or rely on DB constraint
+    // For simplicity here, we assume client sanitization is sufficient, or DB handles incorrect format.
+
+    // Check if guest exists in Supabase by phone number
+    const supabaseGuest = await getGuestByPhoneNumber(phoneNumber);
     
     if (!supabaseGuest || !supabaseGuest.is_active) {
       return NextResponse.json(
@@ -26,7 +29,7 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    console.log(`[API] Guest login successful: ${supabaseGuest.full_name} (ID: ${supabaseGuest.id})`);
+    console.log(`[API] Guest login successful: ${supabaseGuest.full_name} (ID: ${supabaseGuest.id}, Phone: ${phoneNumber})`);
     
     // Get guest events from Supabase
     const { events, access } = await getGuestEvents(supabaseGuest.id);
@@ -83,14 +86,14 @@ export async function GET(request: NextRequest) {
     
     // Logging guest event responses if available
     if (guestResponses && Object.keys(guestResponses).length > 0) {
-      console.log(`[API] Guest ${fullName} has responded to the following events:`, 
+      console.log(`[API] Guest ${supabaseGuest.full_name} has responded to the following events:`, 
         Object.keys(guestResponses).map(eventId => {
           const response = guestResponses[eventId]?.response;
           return `${eventId} (${response})`;
         }).join(', ')
       );
     } else {
-      console.log(`[API] Guest ${fullName} has not responded to any events yet`);
+      console.log(`[API] Guest ${supabaseGuest.full_name} has not responded to any events yet`);
     }
     
     // Prepare response with session token for client-side storage

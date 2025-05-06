@@ -135,42 +135,18 @@ export async function getGuestEvents(guestId: string): Promise<{events: Supabase
   }
 }
 
-export async function getGuestByName(name: string): Promise<SupabaseGuest | null> {
-  try {
-    // Use case insensitive comparison with ilike
-    const { data, error } = await supabaseAdmin
-      .from('guests')
-      .select('*')
-      .ilike('full_name', name)
-      .single();
+export async function getGuestByName(fullName: string): Promise<SupabaseGuest | null> {
+  const { data, error } = await supabaseAdmin
+    .from('guests')
+    .select('*')
+    .eq('full_name', fullName)
+    .single();
 
-    // Handle specific Supabase client errors (e.g., 'PGRST116' is no rows found)
-    if (error) {
-      // If the error indicates the guest was simply not found, return null quietly.
-      // You might need to adjust the error code check based on Supabase specifics.
-      if (error.code === 'PGRST116') {
-        console.log(`[Supabase] Guest not found: ${name}`);
-        return null;
-      }
-      // For other Supabase client errors, log it but still consider it an internal failure.
-      console.error('Supabase client error fetching guest:', error);
-      throw new Error(`Supabase client error: ${error.message}`); // Re-throw other client errors
-    }
-
-    // If data is explicitly null but no error, it means guest not found by ilike
-    if (data === null) {
-        console.log(`[Supabase] Guest not found (no match for ilike): ${name}`);
-        return null;
-    }
-
-    console.log(`[Supabase] Found guest with ID: ${data.id}`);
-    return data;
-  } catch (error) {
-    // Catch network errors or other unexpected issues during the fetch
-    console.error('Caught error in getGuestByName:', error);
-    // Re-throw the error so the calling function (API route) handles it as a 500
-    throw error;
+  if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is not an error here
+    console.error('Error fetching guest by name:', error);
+    return null;
   }
+  return data as SupabaseGuest | null;
 }
 
 export async function checkGuestExists(name: string): Promise<boolean> {
@@ -782,7 +758,6 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
     const { data: guests, error: guestsError } = await supabaseAdmin
       .from('guests')
       .select('*')
-      .eq('is_active', true)
       .order('full_name');
       
     if (guestsError) {
@@ -810,6 +785,17 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
       throw eventsError;
     }
     
+    // Get all guest event access
+    const { data: guestEventAccess, error: accessError } = await supabaseAdmin
+      .from('guest_event_access')
+      .select('*')
+      .eq('can_rsvp', true);
+      
+    if (accessError) {
+      console.error('Error fetching guest event access:', accessError);
+      throw accessError;
+    }
+    
     // Create a map of event IDs to events for easy lookup
     const eventMap = new Map();
     events?.forEach(event => {
@@ -829,9 +815,19 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
       return acc;
     }, {} as Record<string, any[]>);
     
+    // Group event access by guest ID
+    const accessByGuest = guestEventAccess?.reduce((acc, access) => {
+      if (!acc[access.guest_id]) {
+        acc[access.guest_id] = [];
+      }
+      acc[access.guest_id].push(access);
+      return acc;
+    }, {} as Record<string, any[]>);
+    
     // Format guests with their responses
     const formattedGuests = guests?.map(guest => {
       const guestRsvps = rsvpsByGuest[guest.id] || [];
+      const guestAccess = accessByGuest[guest.id] || [];
       
       // Format event responses
       const eventResponses: Record<string, any> = {};
@@ -853,6 +849,16 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
         };
       });
       
+      // Get invited events
+      const invitedEvents = guestAccess.map((access: EventAccess) => {
+        const event = eventMap.get(access.event_id);
+        return event ? { 
+          id: access.event_id,
+          code: event.code,
+          name: event.name
+        } : null;
+      }).filter(Boolean);
+      
       // Format the guest with responses - use the guest's dietary_restrictions directly from the guests table
       return {
         id: guest.id,
@@ -861,6 +867,7 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
         responded: Object.keys(eventResponses).length > 0,
         dietaryRestrictions: guest.dietary_restrictions || '',
         eventResponses,
+        invitedEvents,
         createdAt: guest.created_at,
         updatedAt: guest.updated_at
       };
@@ -871,4 +878,61 @@ export async function getGuestsWithResponsesFromSupabase(): Promise<any[]> {
     console.error('Error in getGuestsWithResponsesFromSupabase:', error);
     throw error;
   }
+}
+
+// New function to fetch guest by phone number
+export async function getGuestByPhoneNumber(phoneNumber: string): Promise<SupabaseGuest | null> {
+  const { data, error } = await supabaseAdmin
+    .from('guests')
+    .select('*')
+    .eq('phone_number', phoneNumber) // Query by phone_number
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+    console.error('Error fetching guest by phone number:', error);
+    return null;
+  }
+  return data as SupabaseGuest | null;
+}
+
+// Function to set event access for a guest
+// It will delete all existing access for the guest and insert new records based on eventIds provided.
+export async function setGuestEventAccess(guestId: string, eventIds: string[]): Promise<{ error?: any }> {
+  console.log(`[Supabase] Setting event access for guest ${guestId} to event IDs: ${eventIds.join(', ') || 'NONE'}`);
+  
+  // Use a transaction to ensure atomicity if preferred, though for a seeder, separate calls might be fine.
+  // For simplicity, performing as separate operations.
+
+  // 1. Delete existing access for this guest
+  const { error: deleteError } = await supabaseAdmin
+    .from('guest_event_access')
+    .delete()
+    .eq('guest_id', guestId);
+
+  if (deleteError) {
+    console.error(`[Supabase] Error deleting existing event access for guest ${guestId}:`, deleteError);
+    return { error: deleteError };
+  }
+  console.log(`[Supabase] Successfully deleted existing event access for guest ${guestId}`);
+
+  // 2. Insert new access records if eventIds are provided
+  if (eventIds.length > 0) {
+    const recordsToInsert = eventIds.map(eventId => ({
+      guest_id: guestId,
+      event_id: eventId,
+      can_rsvp: true // Assuming access granted by seeder means they can RSVP
+    }));
+
+    const { error: insertError } = await supabaseAdmin
+      .from('guest_event_access')
+      .insert(recordsToInsert);
+
+    if (insertError) {
+      console.error(`[Supabase] Error inserting new event access for guest ${guestId}:`, insertError);
+      return { error: insertError };
+    }
+    console.log(`[Supabase] Successfully inserted ${recordsToInsert.length} new event access records for guest ${guestId}`);
+  }
+  
+  return {}; // Success
 } 

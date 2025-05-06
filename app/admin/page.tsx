@@ -163,6 +163,7 @@ function GuestDataTable({
                 {isAllGuestsView ? (
                   <>
                     <TableHead>Overall Status</TableHead>
+                    <TableHead>Invited To</TableHead>
                     <TableHead>Events Attending</TableHead>
                     <TableHead>Dietary Restrictions</TableHead>
                   </>
@@ -192,6 +193,11 @@ function GuestDataTable({
                       .filter(([_, response]) => response?.response === 'Yes' || response?.response === 'Maybe')
                       .map(([eventId, _]) => EVENT_DISPLAY_NAMES[eventId] || eventId)
                     : [];
+                  
+                  // Get events this guest is invited to
+                  const invitedEvents = isAllGuestsView && guest.invitedEvents ? 
+                    guest.invitedEvents.map((event: any) => EVENT_DISPLAY_NAMES[event.code] || event.name)
+                    : [];
 
                   return (
                     <TableRow key={guest.fullName + index}> {/* Use a more stable key if guest object has unique ID */}
@@ -205,6 +211,19 @@ function GuestDataTable({
                             >
                               {overallStatus}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {invitedEvents.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {invitedEvents.map(event => (
+                                  <Badge key={event} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                    {event}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">None</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {attendingEvents.length > 0 ? (

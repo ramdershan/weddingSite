@@ -85,7 +85,7 @@ export function LoginModal({
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Checking...
+                  Logging in...
                 </>
               ) : (
                 "Continue"

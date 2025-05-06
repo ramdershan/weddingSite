@@ -9,6 +9,12 @@ export type EventResponse = {
   updatedAt?: string;
 };
 
+export type InvitedEvent = {
+  id: string;
+  code: string;
+  name: string;
+};
+
 export type Guest = {
   id?: string;
   fullName: string;
@@ -23,7 +29,7 @@ export type Guest = {
   respondedAt?: string;
   updatedAt?: string;
   eventResponses?: Record<string, any>;
-  invitedEvents?: string[];
+  invitedEvents?: InvitedEvent[];
   createdAt?: string;
 };
 

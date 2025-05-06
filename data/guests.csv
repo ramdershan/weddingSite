@@ -1,2 +1,12 @@
-Full Name,Response,Dietary Restrictions,Plus Ones,Adults,Children,Responded At,Updated At
-"John Smith","","","0","0","0","",""
+name,phoneNumber,rsvpEventCodes
+John Smith,0000000000,"wedding,reception,engagement, sangeet, haldi, mehndi"
+Michael Johnson,0000000002,"wedding,reception"
+Emily Williams,0000000003,"wedding"
+Robert Brown,0000000004,"wedding,sangeet,haldi"
+Sarah Davis,0000000005,"wedding,reception,ceremony"
+David Miller,0000000006,"wedding,engagement"
+Jennifer Wilson,0000000007,"wedding"
+Christopher Moore,0000000008,"wedding,reception"
+Jessica Taylor,0000000009,"wedding,haldi"
+New Test Guest,0000000010,"wedding,reception,sangeet"
+Another New Guest,0000000011,"" 

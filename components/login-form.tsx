@@ -9,8 +9,25 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+// Helper function to sanitize and validate phone number
+const sanitizeAndValidatePhoneNumber = (phone: string): string | null => {
+  console.log("[Login Form] Original phone input:", phone);
+  // Remove whitespace and common special characters: (), -, +
+  const sanitized = phone.replace(/[\s()+\-]*/g, '');
+  console.log("[Login Form] Sanitized phone number:", sanitized);
+  
+  // Check if it's exactly 10 digits and contains no letters
+  const isValid = /^\d{10}$/.test(sanitized);
+  console.log("[Login Form] Is phone number valid (10 digits)?:", isValid);
+  
+  if (isValid) {
+    return sanitized;
+  }
+  return null; // Invalid format
+};
+
 export function LoginForm() {
-  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -19,8 +36,10 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fullName.trim()) {
-      setError("Please enter your full name");
+    const sanitizedPhone = sanitizeAndValidatePhoneNumber(phoneNumber);
+
+    if (!sanitizedPhone) {
+      setError("Please enter a valid 10-digit phone number (e.g., 1234567890). Do not include country code.");
       return;
     }
     
@@ -28,13 +47,21 @@ export function LoginForm() {
     setError(null);
     
     try {
-      const response = await fetch(`/api/guest?name=${encodeURIComponent(fullName)}`);
+      const response = await fetch(`/api/guest?phone=${encodeURIComponent(sanitizedPhone)}`);
+      const data = await response.json(); // Parse JSON response here
+
+      console.log("[Login Form] API Response Data:", data); // Log the full response data
       
-      if (response.ok) {
-        router.push(`/rsvp?name=${encodeURIComponent(fullName)}`);
+      if (response.ok && data.guest && data.sessionToken) { // Check for guest and sessionToken in data
+        console.log("[Login Form] Login successful, saving guest data and session token to localStorage.");
+        localStorage.setItem('wedding_guest', JSON.stringify(data.guest));
+        localStorage.setItem('wedding_guest_session', data.sessionToken);
+        
+        // Revert to hard redirect to ensure context reloads, similar to old behavior
+        // router.push(`/rsvp?phone=${encodeURIComponent(sanitizedPhone)}`); 
+        window.location.href = '/'; // Redirect to homepage, or desired target
       } else {
-        const data = await response.json();
-        setError(data.error || "Your name was not found on the guest list");
+        setError(data.error || "Login failed. Please check your phone number or try again.");
       }
     } catch (error) {
       setError("Something went wrong. Please try again.");
@@ -46,12 +73,13 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="fullName">Full Name</Label>
+        <Label htmlFor="phoneNumber">Phone Number</Label>
         <Input
-          id="fullName"
-          placeholder="Enter your full name as it appears on your invitation"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
+          id="phoneNumber"
+          type="tel"
+          placeholder="Enter your 10-digit phone number"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
           disabled={isLoading}
         />
       </div>
@@ -64,7 +92,7 @@ export function LoginForm() {
       )}
       
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Checking..." : "Continue to RSVP"}
+        {isLoading ? "Logging in..." : "Continue to RSVP"}
       </Button>
     </form>
   );
