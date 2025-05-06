@@ -229,7 +229,9 @@ async function main() {
       const currentEventIds = (currentAccess || []).map(access => access.event_id);
       
       if (typeof guestFromSource.rsvpEventCodes === 'string') { // Check if string, even empty
-        const eventCodesFromCSV = guestFromSource.rsvpEventCodes.split(',').map(code => code.trim()).filter(Boolean);
+        // Remove surrounding quotes and then split by comma
+        const cleanedCodes = guestFromSource.rsvpEventCodes.replace(/^["'](.*)["']$/, '$1');
+        const eventCodesFromCSV = cleanedCodes.split(',').map(code => code.trim()).filter(Boolean);
         if (eventCodesFromCSV.length > 0) {
           for (const code of eventCodesFromCSV) {
             const eventId = eventCodeMap.get(code);

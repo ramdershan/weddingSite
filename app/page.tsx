@@ -424,7 +424,6 @@ export default function Home() {
                           <div className="absolute left-3 top-1.5 w-4 h-4 rounded-full bg-[#741914] transform -translate-x-1/2 md:hidden"></div>
                           <h3 className="text-xl font-serif mb-1 pl-10 md:pl-0">{event.title}</h3>
                           <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">{event.date}</p>
-                          <p className="text-muted-foreground text-sm md:text-base pl-10 md:pl-0">{event.time_display}</p>
                         </div>
                         <div className="pl-10 md:mt-0 md:pl-8">
                           <p className="text-muted-foreground text-sm md:text-base">

@@ -102,10 +102,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           title: event.title,
           date: event.date,
           time: (
-            <span>
+            <span className="inline-flex items-center">
               {event.time_start}{event.time_end ? ` - ${event.time_end}` : ''}
-              <span className="mx-1 text-muted-foreground/60">·</span>
-              <span className="text-muted-foreground/80 text-sm">
+              <span className="mx-1 text-muted-foreground/60 inline-block">·</span>
+              <span className="text-muted-foreground/80 inline-block">
                 {timezone}
               </span>
             </span>
@@ -172,10 +172,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
               return {
                 ...childEvent,
                 time_start: (
-                  <span>
+                  <span className="inline-flex items-center">
                     {childEvent.time_start}
-                    <span className="mx-1 text-muted-foreground/60">·</span>
-                    <span className="text-muted-foreground/80 text-sm">
+                    <span className="mx-1 text-muted-foreground/60 inline-block">·</span>
+                    <span className="text-muted-foreground/80 inline-block">
                       {timezone}
                     </span>
                   </span>
@@ -260,10 +260,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           title: data.event.title,
           date: data.event.date,
           time: (
-            <span>
+            <span className="inline-flex items-center">
               {data.event.time_start}{data.event.time_end ? ` - ${data.event.time_end}` : ''}
-              <span className="mx-1 text-muted-foreground/60">·</span>
-              <span className="text-muted-foreground/80 text-sm">
+              <span className="mx-1 text-muted-foreground/60 inline-block">·</span>
+              <span className="text-muted-foreground/80 inline-block">
                 {timezone}
               </span>
             </span>
@@ -324,10 +324,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
             return {
               ...childEvent,
               time_start: (
-                <span>
+                <span className="inline-flex items-center">
                   {childEvent.time_start}
-                  <span className="mx-1 text-muted-foreground/60">·</span>
-                  <span className="text-muted-foreground/80 text-sm">
+                  <span className="mx-1 text-muted-foreground/60 inline-block">·</span>
+                  <span className="text-muted-foreground/80 inline-block">
                     {timezone}
                   </span>
                 </span>
@@ -816,8 +816,8 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                             className="cursor-pointer text-sm flex items-center justify-between w-full"
                           >
                             <span>{childEvent.title}</span>
-                            <span className="text-xs text-muted-foreground flex items-center">
-                              {childEvent.date}, {childEvent.time_start}
+                            <span className="text-xs text-muted-foreground">
+                              {childEvent.date} - {childEvent.time_start}
                             </span>
                           </Label>
                         </div>
@@ -887,7 +887,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                   )}
                   
                   <p className="text-sm text-muted-foreground">
-                    Please add additional guests, not including yourself, in the sections indicated above
+                    Please add additional guests, not including yourself, in this section
                   </p>
                 </div>
                 
