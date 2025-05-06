@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Guest, EventData } from '@/lib/types';
+import { Guest, EventData, InvitedEvent } from '@/lib/types';
 import { validateGuestSession, deleteGuestSession } from '@/lib/supabase';
 import { createLogoutOverlay } from '@/components/logout-overlay';
 import { useRouter } from 'next/navigation';
@@ -197,15 +197,23 @@ export const GuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [sessionToken, isLoaded]);
 
   const setGuest = useCallback((newGuest: Guest, newEvents: EventData[] = []) => {
-    // Ensure invitedEvents is present
+    // Ensure invitedEvents is present and properly typed
+    const invitedEvents = newGuest.invitedEvents || 
+      // Convert string array to InvitedEvent[]
+      ['engagement', 'wedding', 'reception'].map(code => ({
+        id: code,
+        code: code,
+        name: code.charAt(0).toUpperCase() + code.slice(1)
+      }));
+
     const guestWithDefaults = {
       ...newGuest,
-      invitedEvents: newGuest.invitedEvents || ['engagement', 'wedding', 'reception']
+      invitedEvents
     };
     
     console.log('Setting guest:', guestWithDefaults);
     if (guestWithDefaults.invitedEvents) {
-      console.log(`Guest invited events: ${guestWithDefaults.invitedEvents.join(', ')}`);
+      console.log(`Guest invited events: ${guestWithDefaults.invitedEvents.map((e: string | InvitedEvent) => typeof e === 'string' ? e : e.code).join(', ')}`);
     }
     
     setGuestState(guestWithDefaults);
@@ -346,14 +354,21 @@ export const GuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       
       // Update the guest in state and local storage
+      const validatedInvitedEvents = data.guest.invitedEvents || 
+        ['engagement', 'wedding', 'reception'].map(code => ({
+          id: code,
+          code: code,
+          name: code.charAt(0).toUpperCase() + code.slice(1)
+        }));
+
       const validatedGuest = {
         ...data.guest,
-        invitedEvents: data.guest.invitedEvents || ['engagement', 'wedding', 'reception']
+        invitedEvents: validatedInvitedEvents
       };
       
       console.log('Setting validated guest:', validatedGuest);
       if (validatedGuest.invitedEvents) {
-        console.log(`Validated guest invited events: ${validatedGuest.invitedEvents.join(', ')}`);
+        console.log(`Validated guest invited events: ${validatedGuest.invitedEvents.map((e: string | InvitedEvent) => typeof e === 'string' ? e : e.code).join(', ')}`);
       }
       
       setGuestState(validatedGuest);
