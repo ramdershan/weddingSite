@@ -262,21 +262,20 @@ export default function Home() {
   }
   
   return (
-    <main className="min-h-screen">
-      <section className="relative h-screen flex items-center justify-center overflow-hidden" id="home">
+    <main className="min-h-screen relative overflow-x-hidden">
+      <section className="relative h-screen flex justify-center overflow-hidden" id="home">
         <div className="absolute inset-0 bg-black/20 z-10" />
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-bottom bg-no-repeat [@media(min-width:2588px)]:bg-[center_50%]"
           style={{ 
             backgroundImage: "url('/yr_hero.jpg')",
             backgroundSize: "cover",
-            backgroundPosition: "center bottom",
             height: "100%",
             width: "100%"
           }}
         />
         
-        <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
+        <div className="relative z-20 text-center px-4 max-w-4xl mx-auto pt-48 [@media(min-width:2588px)]:pt-56">
           <h1 className="text-5xl md:text-7xl font-windsong font-medium text-white mb-4">
             Yukti & Ram
           </h1>
@@ -308,7 +307,17 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-20 bg-[#f4d6c1]" id="our-story">
+      <section className="py-20 bg-[#f4d6c1] relative" id="our-story">
+        <div className="hidden md:block absolute top-4 xl:top-[35%] left-[8%] lg:left-0 2xl:left-[15%] z-30 transform -rotate-12 pointer-events-none">
+          <Image 
+            src="/flower1.png" 
+            alt="" 
+            width={170} 
+            height={170} 
+            className="xl:w-[220px] xl:h-[220px]" 
+          />
+        </div>
+
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-windsong mb-2">Our Story</h2>
@@ -344,7 +353,17 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-20 bg-[#f6f2e7]" id="timeline">
+      <section className="py-20 bg-[#f6f2e7] relative" id="timeline">
+        <div className="hidden md:block absolute top-4 xl:top-[50%] right-[5%] xl:right-0 2xl:right-[8%] z-30 transform -rotate-12 pointer-events-none">
+          <Image 
+            src="leaf1.png" 
+            alt="" 
+            width={120} 
+            height={120} 
+            className="xl:w-[180px] xl:h-[180px]" 
+          />
+        </div>
+
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-windsong mb-2">Event Timeline</h2>
@@ -383,7 +402,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-20 bg-[#f4d6c1]" id="rsvp">
+      <section className="py-20 bg-[#f4d6c1] relative" id="rsvp">
+        <div className="hidden md:block absolute top-4 left-[20%] xl:left-[25%] z-30 transform -rotate-5 pointer-events-none">
+          <Image src="/flower2.png" alt="" width={105} height={105} />
+        </div>
+
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-windsong mb-2">RSVP Here</h2>
