@@ -37,21 +37,21 @@ export function LoginModal({
       
       if (response.ok) {
         const data = await response.json();
-        setGuest(data.guest, data.sessionToken);
+        setGuest(data.guest, data.events || []);
         onClose();
       } else {
         const data = await response.json();
         setError(data.error || "Your name was not found on the guest list");
+        setIsLoading(false);
       }
     } catch (error) {
       setError("Something went wrong. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isLoading && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">Welcome to Our Wedding</DialogTitle>
@@ -70,6 +70,7 @@ export function LoginModal({
               onChange={(e) => setFullName(e.target.value)}
               disabled={isLoading}
               autoComplete="name"
+              className="focus-visible:ring-[#741914] focus-visible:border-[#741914]"
             />
           </div>
           
@@ -81,14 +82,23 @@ export function LoginModal({
           )}
           
           <div className="flex justify-end">
-            <Button type="submit" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className={`
+                transition-all
+                ${isLoading 
+                  ? "bg-[#741914] text-white shadow-md" 
+                  : "bg-[#741914] hover:bg-[#641510] text-white hover:shadow-md"}
+              `}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Logging in...
                 </>
               ) : (
-                "Continue"
+                "Continue to RSVP"
               )}
             </Button>
           </div>

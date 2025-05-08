@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Helper function to sanitize and validate phone number
@@ -58,15 +58,15 @@ export function LoginForm() {
         localStorage.setItem('wedding_guest_session', data.sessionToken);
         
         // Revert to hard redirect to ensure context reloads, similar to old behavior
-        // router.push(`/rsvp?phone=${encodeURIComponent(sanitizedPhone)}`); 
+        // Note: don't reset isLoading state, keep the spinner shown during redirect
         window.location.href = '/'; // Redirect to homepage, or desired target
       } else {
         setError(data.error || "Login failed. Please check your phone number or try again.");
+        setIsLoading(false); // Only reset loading state on error
       }
     } catch (error) {
       setError("Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Only reset loading state on error
     }
   };
 
@@ -81,6 +81,7 @@ export function LoginForm() {
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
           disabled={isLoading}
+          className="focus-visible:ring-[#741914]"
         />
       </div>
       
@@ -91,8 +92,19 @@ export function LoginForm() {
         </Alert>
       )}
       
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Logging in..." : "Continue to RSVP"}
+      <Button 
+        type="submit" 
+        className='bg-[#741914] hover:bg-[#641510] text-white shadow-md hover:shadow-lg transition-all w-full'
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Logging in...
+          </>
+        ) : (
+          "Continue to RSVP"
+        )}
       </Button>
     </form>
   );

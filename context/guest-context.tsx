@@ -260,40 +260,53 @@ export const GuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const clearGuest = useCallback(async () => {
     console.log('[Guest Context] Clearing guest session...');
     
-    // Create and show overlay for logout animation
+    // Get current pathname to check if we're on an RSVP page
+    const isOnRsvpPage = typeof window !== 'undefined' && window.location.pathname.includes('/rsvp');
+    console.log(`[Guest Context] Logout initiated on path: ${typeof window !== 'undefined' ? window.location.pathname : 'unknown'}`);
+    
+    // Create and show overlay for logout animation - now showing on all pages including RSVP
     let overlay: HTMLDivElement | null = null;
     if (typeof document !== 'undefined') {
       overlay = createLogoutOverlay();
     }
+    
+    // Store the token before clearing localStorage
+    const tokenToDelete = sessionToken;
     
     // Immediately clear localStorage to ensure clean state
     localStorage.removeItem('wedding_guest');
     localStorage.removeItem('wedding_guest_session');
     localStorage.removeItem('wedding_guest_events');
     
+    // Set a timestamp to indicate recent logout
+    localStorage.setItem('wedding_logout_timestamp', Date.now().toString());
+    
     // Clear state after localStorage is cleared
     setGuestState(null);
     setEvents([]);
+    setSessionToken(null);
     
     // If we have a session token, delete the session from server
-    if (sessionToken) {
+    if (tokenToDelete) {
       try {
-        // Wait for API to complete logout
+        // Use deleteGuestSession directly to ensure session is removed from DB
+        const deleteSuccessful = await deleteGuestSession(tokenToDelete);
+        console.log(`[Guest Context] Session deletion from database ${deleteSuccessful ? 'successful' : 'failed'}`);
+        
+        // Also call the logout API to clear the cookie
         await fetch('/api/auth/logout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ sessionToken }),
+          body: JSON.stringify({ sessionToken: tokenToDelete }),
         });
       } catch (error) {
         console.error('[Guest Context] Error during logout process:', error);
       }
-      
-      setSessionToken(null);
     }
     
-    // Wait for animation and then redirect
+    // Use the same timing for all pages to ensure the overlay animation is visible
     setTimeout(() => {
       if (overlay) {
         overlay.classList.add('fade-out');

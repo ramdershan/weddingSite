@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEventByCode } from '@/lib/supabase';
+import { getEventByCode, validateGuestSession, checkGuestEventAccess } from '@/lib/supabase';
 import { EventData } from '@/lib/types';
 import { supabaseAdmin } from '@/lib/supabase';
 
@@ -100,8 +100,45 @@ export async function GET(
       );
     }
 
+    // Check user access if there's a session token
+    // Get token from cookie first, then fallback to request parameter
+    let sessionToken = request.cookies.get('guest_session')?.value;
+    if (!sessionToken) {
+      // Check in search params
+      const searchParams = request.nextUrl.searchParams;
+      sessionToken = searchParams.get('token') || undefined;
+    }
+
+    let hasAccess = true; // Default to true for public endpoints
+
+    if (sessionToken) {
+      // Validate the session token
+      const guest = await validateGuestSession(sessionToken);
+      if (guest) {
+        // Check if this guest has access to this event
+        hasAccess = await checkGuestEventAccess(guest.id, eventId);
+        
+        // If the guest doesn't have access, return a 403 Forbidden
+        if (!hasAccess) {
+          console.log(`[API] Guest ${guest.full_name} (${guest.id}) attempted to access event ${eventId} without permission`);
+          return NextResponse.json(
+            { error: 'You do not have permission to access this event' },
+            { status: 403 }
+          );
+        }
+      } else {
+        // Invalid session token
+        console.log(`[API] Invalid session token used to access event ${eventId}`);
+        return NextResponse.json(
+          { error: 'Invalid session token' },
+          { status: 401 }
+        );
+      }
+    }
+
     // Format the event data for the frontend
     const formattedEvent = formatEventData(event);
+    formattedEvent.canRsvp = hasAccess; // Update canRsvp based on access check
 
     // If this is a parent event, fetch its child events
     let childEvents: EventData[] = [];
@@ -117,8 +154,25 @@ export async function GET(
         if (childEventError) {
           console.error('Error fetching child events:', childEventError);
         } else if (childEventData && childEventData.length > 0) {
-          // Format child events
-          childEvents = childEventData.map(childEvent => formatEventData(childEvent));
+          // If we have a guest session, check access for each child event
+          if (sessionToken) {
+            const guest = await validateGuestSession(sessionToken);
+            if (guest) {
+              // Process each child event
+              for (const childEvent of childEventData) {
+                const childHasAccess = await checkGuestEventAccess(guest.id, childEvent.code);
+                const formattedChildEvent = formatEventData(childEvent);
+                formattedChildEvent.canRsvp = childHasAccess;
+                childEvents.push(formattedChildEvent);
+              }
+            } else {
+              // No valid guest, format events with default access
+              childEvents = childEventData.map(childEvent => formatEventData(childEvent));
+            }
+          } else {
+            // No session token, format events with default access
+            childEvents = childEventData.map(childEvent => formatEventData(childEvent));
+          }
         }
       } catch (childError) {
         console.error('Error fetching child events:', childError);

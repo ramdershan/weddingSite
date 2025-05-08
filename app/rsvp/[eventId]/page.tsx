@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -67,16 +67,242 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     'reception': 7
   };
   
-  // Set a minimum loading time of 2.5 seconds
+  // Used to prevent repeated toast notifications
+  const [hasShownDeadlineToast, setHasShownDeadlineToast] = useState<boolean>(false);
+  // Count down from 15 to 0
+  const [redirectCountdown, setRedirectCountdown] = useState<number>(15);
+  
+  // Helper function to check if sign-out is in progress - defined early so it can be used in useEffect
+  const isSigningOut = () => {
+    // Check for the logout overlay element
+    const hasLogoutOverlay = typeof document !== 'undefined' && 
+      !!document.querySelector('[data-logout-overlay="true"]');
+    
+    // Also check if guest data was recently cleared (within last 3 seconds)
+    const logoutTimestamp = typeof localStorage !== 'undefined' ? 
+      localStorage.getItem('wedding_logout_timestamp') : null;
+    
+    if (logoutTimestamp) {
+      const logoutTime = parseInt(logoutTimestamp, 10);
+      const currentTime = Date.now();
+      const isRecentLogout = (currentTime - logoutTime) < 3000; // 3 seconds
+      return isRecentLogout;
+    }
+    
+    return hasLogoutOverlay;
+  };
+  
+  // Helper function to check if the deadline has passed for this specific event
+  const checkEventDeadline = (eventObj: any) => {
+    if (!eventObj) return false;
+    
+    // First check if event has a specific deadline in the database
+    if (eventObj.rsvpDeadline) {
+      return new Date() > new Date(eventObj.rsvpDeadline);
+    }
+    
+    // Fallback to the general deadline checks
+    return eventId === 'engagement' 
+      ? isEngagementRsvpDeadlinePassed() 
+      : isRsvpDeadlinePassed();
+  };
+
+  // Helper function to get the formatted deadline text
+  const getDeadlineText = () => {
+    const event = events.find((e: any) => e.id === eventId);
+    
+    if (event?.rsvpDeadline) {
+      const deadlineDate = new Date(event.rsvpDeadline);
+      return `Please RSVP by ${deadlineDate.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      })}`;
+    }
+    
+    // Fallback text based on event type
+    return eventId === 'engagement' 
+      ? "Please RSVP by September 1, 2025" 
+      : "Please RSVP by January 1, 2026";
+  };
+  
+  // Helper function to get the formatted deadline date string for the past deadline message
+  const getPastDeadlineText = () => {
+    const event = events.find((e: any) => e.id === eventId);
+    
+    if (event?.rsvpDeadline) {
+      const deadlineDate = new Date(event.rsvpDeadline);
+      return `The deadline for ${event.title} RSVPs was ${deadlineDate.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      })}.`;
+    }
+    
+    // Fallback text based on event type
+    return eventId === 'engagement' 
+      ? "The deadline for Engagement RSVPs was September 1, 2025." 
+      : "The deadline for RSVPs was January 1, 2026.";
+  };
+  
+  // Helper function to show toast with countdown and handle redirect
+  const showDeadlineToastWithCountdown = useCallback(() => {
+    // Mark that we've shown the toast to prevent showing it again
+    setHasShownDeadlineToast(true);
+    
+    // Show initial toast
+    toast({
+      title: "RSVP Deadline Passed",
+      description: `Sorry, ${getPastDeadlineText().toLowerCase()} You will be redirected to the home page in 15 seconds.`,
+      duration: 15000, // 15 seconds
+      variant: "destructive"
+    });
+    
+    // Start countdown from 15
+    setRedirectCountdown(15);
+    
+    // Set up interval to update toast every second
+    const countdownInterval = setInterval(() => {
+      setRedirectCountdown(prevCount => {
+        // If we hit 0, clear interval and redirect
+        if (prevCount <= 1) {
+          clearInterval(countdownInterval);
+          window.location.href = '/#rsvp';
+          return 0;
+        }
+        
+        // Update toast with new countdown
+        const newCount = prevCount - 1;
+        toast({
+          title: "RSVP Deadline Passed",
+          description: `Sorry, ${getPastDeadlineText().toLowerCase()} You will be redirected to the home page in ${newCount} seconds.`,
+          duration: 2000, // Enough time to read before next update
+          variant: "destructive"
+        });
+        
+        return newCount;
+      });
+    }, 1000);
+    
+    // Clean up interval if component unmounts
+    return () => clearInterval(countdownInterval);
+  }, [toast, getPastDeadlineText, setHasShownDeadlineToast, setRedirectCountdown]);
+  
+  // Define fetchGuestData and autoLoginWithName functions before they're used in useEffect
+  const fetchGuestData = useCallback(async () => {
+    if (!guest) return;
+    
+    try {
+      let initialDietary = guest.dietaryRestrictions || '';
+      const eventResponse = guest.eventResponses?.[eventId];
+      
+      if (eventResponse) {
+        setHasResponded(true);
+        
+        // Apply flags before setting state
+        if (!responseManuallyEdited) {
+          setResponse(eventResponse.response || "Yes");
+        }
+        if (!plusOneManuallyEdited) {
+          const initialPlusOne = eventResponse.plusOne || false;
+          setPlusOne(initialPlusOne);
+          // Only set counts if plusOne is initially true AND not manually edited
+          if (initialPlusOne) { 
+             setAdultCount(eventResponse.adultCount ?? (eventResponse.plusOneCount || 0));
+             setChildrenCount(eventResponse.childrenCount ?? 0);
+          }
+        }
+        
+        // Remove fallback: Use guest's dietary restrictions only
+        initialDietary = guest.dietaryRestrictions || '';
+        
+        // Check for child event responses if this is a parent event
+        // Only initialize child events if they haven't been manually edited
+        if (childEvents.length > 0 && !childEventsManuallyEdited) {
+          const updatedSelectedEvents: Record<string, boolean> = {};
+          childEvents.forEach(childEvent => {
+            const childResponse = guest.eventResponses?.[childEvent.id];
+            updatedSelectedEvents[childEvent.id] = childResponse?.response === "Yes";
+          });
+          setSelectedChildEvents(updatedSelectedEvents);
+        }
+      } 
+      
+      if (!dietaryManuallyEdited) {
+        setDietaryRestrictions(initialDietary);
+      }
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load your previous RSVP information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDataLoadingComplete(true);
+    }
+  }, [
+    guest, 
+    eventId, 
+    childEvents, 
+    childEventsManuallyEdited, 
+    dietaryManuallyEdited, 
+    plusOneManuallyEdited, 
+    responseManuallyEdited, 
+    toast,
+    setHasResponded,
+    setResponse,
+    setPlusOne,
+    setAdultCount,
+    setChildrenCount,
+    setSelectedChildEvents,
+    setDietaryRestrictions,
+    setDataLoadingComplete
+  ]);
+  
+  // Auto-login function using name from URL
+  const autoLoginWithName = useCallback(async (name: string) => {
+    try {
+      const response = await fetch(`/api/guest?name=${encodeURIComponent(name)}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setGuest(data.guest);
+        // Guest is now set, useEffect will call fetchGuestData
+      } else {
+        // Auto-login failed, show login modal
+        setNeedsLoginModal(true);
+        setDataLoadingComplete(true); // No further data loading needed
+      }
+    } catch (error) {
+      console.error("Error auto-logging in with name from URL:", error);
+      setNeedsLoginModal(true);
+      setDataLoadingComplete(true); // No further data loading needed
+    }
+  }, [setGuest, setNeedsLoginModal, setDataLoadingComplete]);
+  
+  // Set a minimum loading time for better user experience
   useEffect(() => {
     // Start the minimum loading timer
     const timer = setTimeout(() => {
       setMinimumLoadingComplete(true);
-    }, 2500);
+    }, 1000);
     
     // Clean up the timer if component unmounts
     return () => clearTimeout(timer);
   }, []);
+  
+  // Immediately redirect non-logged in users (except when auto-login is possible)
+  useEffect(() => {
+    // Skip this check if signing out is in progress
+    if (isSigningOut()) return;
+    
+    const nameFromUrl = searchParams.get('name');
+    if (!nameFromUrl && !guest) {
+      console.log('[RSVP] Redirecting non-logged in user from event page');
+      window.location.href = '/#rsvp';
+    }
+  }, [guest, searchParams, isSigningOut]);
   
   // Load event details from GuestContext events
   useEffect(() => {
@@ -231,6 +457,30 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     }
   }, [response]);
   
+  // Check guest authorization for this event as soon as possible
+  useEffect(() => {
+    // Skip if no guest or events data yet
+    if (!guest || !events || events.length === 0) return;
+
+    // Check if the guest has access to this event
+    const eventInGuestList = events.find(e => e.id === eventId);
+    
+    // If event not in guest's list or can't RSVP, redirect immediately
+    if (!eventInGuestList || !eventInGuestList.canRsvp) {
+      console.log(`[RSVP] Guest ${guest.fullName} attempted to access unauthorized event: ${eventId}`);
+      
+      // Show toast notification
+      toast({
+        title: "Access Denied",
+        description: "You are not authorized to access this event.",
+        variant: "destructive",
+      });
+      
+      // Redirect to home page RSVP section immediately
+      window.location.href = '/#rsvp';
+    }
+  }, [guest, events, eventId, toast]);
+  
   // Fetch event details from API
   const fetchEventDetails = async () => {
     try {
@@ -243,12 +493,17 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           // Try to find this event in the guest's events
           const eventInGuestList = events.find(e => e.id === eventId);
           if (!eventInGuestList || !eventInGuestList.canRsvp) {
+            console.log(`[RSVP] Guest ${guest.fullName} attempted to access unauthorized event: ${eventId}`);
+            
+            // Show toast notification
             toast({
               title: "Access Denied",
-              description: "You are not authorized to RSVP for this event.",
+              description: "You are not authorized to access this event.",
               variant: "destructive",
             });
-            router.push('/');
+            
+            // Redirect to home page RSVP section immediately
+            window.location.href = '/#rsvp';
             return;
           }
         }
@@ -381,9 +636,13 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     if (minimumLoadingComplete && dataLoadingComplete) {
       setIsLoading(false);
       
+      // Check if sign-out is in progress using our defined function
+      const userIsSigningOut = isSigningOut();
+      
       // Only show login modal after minimum loading time has passed
       // And only if we need to show it (no guest and needsLoginModal is true)
-      if (!guest && needsLoginModal) {
+      // And not when signing out
+      if (!guest && needsLoginModal && !userIsSigningOut) {
         // Slight delay to ensure smooth transition from loading screen to modal
         setTimeout(() => {
           setShowLoginModal(true);
@@ -394,10 +653,13 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   
   useEffect(() => {
     // Check if RSVP deadline has passed
-    if (eventId === 'engagement') {
-      setDeadlinePassed(isEngagementRsvpDeadlinePassed());
-    } else {
-      setDeadlinePassed(isRsvpDeadlinePassed());
+    const currentEvent = events.find((e: any) => e.id === eventId);
+    const deadlineHasPassed = checkEventDeadline(currentEvent);
+    setDeadlinePassed(deadlineHasPassed);
+    
+    // If deadline has passed, show toast and redirect to home page RSVP section
+    if (deadlineHasPassed && !hasShownDeadlineToast) {
+      showDeadlineToastWithCountdown();
     }
     
     // Redirect if invalid event ID (will be handled by fetchEventDetails)
@@ -424,82 +686,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       setNeedsLoginModal(true);
       setDataLoadingComplete(true); // No data to load in this case
     }
-  }, [eventId, eventDetails, guest, searchParams, dataLoadingComplete]);
-  
-  const fetchGuestData = async () => {
-    if (!guest) return;
-    
-    try {
-      let initialDietary = guest.dietaryRestrictions || '';
-      const eventResponse = guest.eventResponses?.[eventId];
-      
-      if (eventResponse) {
-        setHasResponded(true);
-        
-        // Apply flags before setting state
-        if (!responseManuallyEdited) {
-          setResponse(eventResponse.response || "Yes");
-        }
-        if (!plusOneManuallyEdited) {
-          const initialPlusOne = eventResponse.plusOne || false;
-          setPlusOne(initialPlusOne);
-          // Only set counts if plusOne is initially true AND not manually edited
-          if (initialPlusOne) { 
-             setAdultCount(eventResponse.adultCount ?? (eventResponse.plusOneCount || 0));
-             setChildrenCount(eventResponse.childrenCount ?? 0);
-          }
-        }
-        
-        // Remove fallback: Use guest's dietary restrictions only
-        initialDietary = guest.dietaryRestrictions || '';
-        
-        // Check for child event responses if this is a parent event
-        // Only initialize child events if they haven't been manually edited
-        if (childEvents.length > 0 && !childEventsManuallyEdited) {
-          const updatedSelectedEvents: Record<string, boolean> = {};
-          childEvents.forEach(childEvent => {
-            const childResponse = guest.eventResponses?.[childEvent.id];
-            updatedSelectedEvents[childEvent.id] = childResponse?.response === "Yes";
-          });
-          setSelectedChildEvents(updatedSelectedEvents);
-        }
-      } 
-      
-      if (!dietaryManuallyEdited) {
-        setDietaryRestrictions(initialDietary);
-      }
-
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load your previous RSVP information. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setDataLoadingComplete(true);
-    }
-  };
-  
-  // Auto-login function using name from URL
-  const autoLoginWithName = async (name: string) => {
-    try {
-      const response = await fetch(`/api/guest?name=${encodeURIComponent(name)}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setGuest(data.guest);
-        // Guest is now set, useEffect will call fetchGuestData
-      } else {
-        // Auto-login failed, show login modal
-        setNeedsLoginModal(true);
-        setDataLoadingComplete(true); // No further data loading needed
-      }
-    } catch (error) {
-      console.error("Error auto-logging in with name from URL:", error);
-      setNeedsLoginModal(true);
-      setDataLoadingComplete(true); // No further data loading needed
-    }
-  };
+  }, [eventId, eventDetails, guest, searchParams, dataLoadingComplete, events, toast, hasShownDeadlineToast]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -513,26 +700,25 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     if (events && events.length > 0) {
       const eventInGuestList = events.find(e => e.id === eventId);
       if (!eventInGuestList || !eventInGuestList.canRsvp) {
+        console.log(`[RSVP] Guest ${guest.fullName} attempted to submit RSVP for unauthorized event: ${eventId}`);
+        
         toast({
           title: "Access Denied",
-          description: "You are not authorized to RSVP for this event.",
+          description: "You are not authorized to access this event.",
           variant: "destructive",
         });
-        router.push('/');
+        
+        // Redirect to home page RSVP section immediately
+        window.location.href = '/#rsvp';
         return;
       }
-    }
     
-    // Double-check deadline hasn't passed
-    if ((eventId === 'engagement' && isEngagementRsvpDeadlinePassed()) || 
-        (eventId !== 'engagement' && isRsvpDeadlinePassed())) {
-      toast({
-        title: "RSVP Closed",
-        description: `The RSVP period for the ${eventDetails.title} has ended. Please contact the hosts directly.`,
-        variant: "destructive",
-      });
+      // Double-check deadline hasn't passed using our more accurate function
+      if (checkEventDeadline(eventInGuestList)) {
       setDeadlinePassed(true);
+        showDeadlineToastWithCountdown();
       return;
+      }
     }
     
     setIsSubmitting(true);
@@ -565,13 +751,14 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
           // Authorization error
           toast({
             title: "Access Denied",
-            description: errorData.error || "You are not authorized to RSVP for this event.",
+            description: errorData.error || "You are not authorized to access this event.",
             variant: "destructive",
           });
           
-          // If it's a permission issue, redirect to home
-          if (errorData.error === "You do not have permission to RSVP for this event") {
-            setTimeout(() => router.push('/'), 2000);
+          // If it's a permission issue, redirect to home RSVP section
+          if (errorData.error === "You do not have permission to RSVP for this event" || 
+              errorData.error === "You are not invited to this event") {
+            window.location.href = '/#rsvp';
           }
           return;
         } else if (apiResponse.status === 404) {
@@ -581,7 +768,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
             description: "This event does not exist or has been removed.",
             variant: "destructive",
           });
-          setTimeout(() => router.push('/'), 2000);
+          window.location.href = '/#rsvp';
           return;
         }
         
@@ -660,24 +847,15 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   
   if (deadlinePassed) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4 pt-24">
+      <main className="min-h-screen bg-[#f4d6c1] flex flex-col items-center justify-center p-4 pt-24">
         <div className="max-w-md w-full mx-auto">
-          <Card className="p-6 shadow-lg">
+          <Card className="p-6 shadow-lg bg-[#f6f2e7]">
             <div className="text-center space-y-4">
               <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
               <h2 className="text-xl font-semibold">RSVP Period Has Ended</h2>
               <p className="text-muted-foreground">
-                {eventId === 'engagement' 
-                  ? "The deadline for Engagement RSVPs was September 1, 2025." 
-                  : "The deadline for RSVPs was January 1, 2026."} 
-                If you need to update your response, please contact the hosts directly.
+                {getPastDeadlineText()} If you need to update your response, please contact the hosts directly. You will be redirected to the home page in 10 seconds.
               </p>
-              <Button 
-                onClick={() => router.push('/')}
-                className="mt-4"
-              >
-                Return to Home
-              </Button>
             </div>
           </Card>
         </div>
@@ -703,15 +881,15 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
             
             <div className="bg-muted/50 p-4 rounded-md space-y-2 text-sm">
               <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2 text-primary" />
+                <Calendar className="h-4 w-4 mr-2 text-[#741914]" />
                 <span>{eventDetails.date}</span>
               </div>
               <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-2 text-primary" />
+                <Clock className="h-4 w-4 mr-2 text-[#741914]" />
                 <span>{eventDetails.time}</span>
               </div>
               <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-2 text-primary" />
+                <MapPin className="h-4 w-4 mr-2 text-[#741914]" />
                 <a 
                   href={eventDetails.maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(eventDetails.location)}`}
                   target="_blank"
@@ -729,7 +907,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                 <p>You need to sign in to RSVP for this event.</p>
                 <Button 
                   onClick={() => setNeedsLoginModal(true)}
-                  className="mt-2"
+                  className="mt-2 bg-[#741914] hover:bg-[#641510] text-white shadow-md hover:shadow-lg transition-all"
                 >
                   Sign In
                 </Button>
@@ -746,7 +924,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                   <Button 
                     onClick={() => setSubmitted(false)}
                     variant="outline"
-                    className="mt-2"
+                    className="mt-2 hover:bg-[#741914] hover:text-white border-[#741914] text-[#741914] shadow-sm hover:shadow-lg transition-all"
                   >
                     Edit Response
                   </Button>
@@ -772,15 +950,15 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                     className="flex flex-col space-y-2"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Yes" id="yes" />
+                      <RadioGroupItem value="Yes" id="yes" className="text-[#741914] border-[#741914] focus:ring-[#741914]" />
                       <Label htmlFor="yes" className="cursor-pointer">Yes, I'll be there</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="No" id="no" />
+                      <RadioGroupItem value="No" id="no" className="text-[#741914] border-[#741914] focus:ring-[#741914]" />
                       <Label htmlFor="no" className="cursor-pointer">No, I can't make it</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Maybe" id="maybe" />
+                      <RadioGroupItem value="Maybe" id="maybe" className="text-[#741914] border-[#741914] focus:ring-[#741914]" />
                       <Label htmlFor="maybe" className="cursor-pointer">Maybe, I'm not sure yet</Label>
                     </div>
                   </RadioGroup>
@@ -808,7 +986,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                               });
                               setChildEventsManuallyEdited(true);
                             }}
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            className="h-4 w-4 rounded border-gray-300 text-[#741914] focus:ring-[#741914] accent-[#741914]"
                             disabled={response !== "Yes" && response !== "Maybe"}
                           />
                           <Label 
@@ -841,6 +1019,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                         }
                       }}
                       disabled={response === "No"}
+                      className="data-[state=checked]:bg-[#741914]"
                     />
                   </div>
                   
@@ -858,7 +1037,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                             setAdultCount(parseInt(e.target.value) || 0);
                             setPlusOneManuallyEdited(true);
                           }}
-                          className="mt-1"
+                          className="mt-1 focus-visible:ring-[#741914]"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           Not including yourself
@@ -877,7 +1056,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                              setChildrenCount(parseInt(e.target.value) || 0);
                              setPlusOneManuallyEdited(true);
                            }}
-                          className="mt-1"
+                          className="mt-1 focus-visible:ring-[#741914]"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           Children under 12 years old
@@ -905,6 +1084,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                     }}
                     disabled={response === "No"}
                     maxLength={150}
+                    className="focus-visible:ring-[#741914]"
                   />
                   <p className="text-xs text-muted-foreground text-right">
                     {dietaryRestrictions.length}/150 characters
@@ -914,7 +1094,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
                 <div className="flex flex-col space-y-2">
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full bg-[#741914] hover:bg-[#641510] text-white shadow-md hover:shadow-lg transition-all"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -940,20 +1120,19 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         </Card>
         
         <p className="text-center text-muted-foreground text-sm mt-8">
-          {eventId === 'engagement' 
-            ? "Please RSVP by September 1, 2025" 
-            : "Please RSVP by January 1, 2026"}
+          {getDeadlineText()}
         </p>
       </div>
       
       <LoginModal 
-        isOpen={showLoginModal} 
+        isOpen={showLoginModal && !isSigningOut()} 
         onClose={() => {
           setShowLoginModal(false);
           // Also reset the needs login modal flag
           setNeedsLoginModal(false);
           if (!guest) {
-            router.push('/');
+            // Force a hard redirect to the home page for a clean state
+            window.location.href = '/';
           }
         }} 
       />

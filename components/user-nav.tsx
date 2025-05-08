@@ -73,7 +73,7 @@ export function UserNav() {
               // Log the logout attempt with the current pathname
               console.log('[UserNav] Invoking clearGuest from UserNav on path:', pathname);
               
-              // Call clearGuest directly - no timeout needed as clearGuest handles the animation timing
+              // Use the same logout process for all pages, allowing the logout overlay to be shown
               clearGuest();
             }}
           >

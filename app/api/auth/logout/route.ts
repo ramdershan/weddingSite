@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { deleteGuestSession } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the session token from the request body
+    const body = await request.json();
+    const { sessionToken } = body;
+    
+    // Try to get the session token from cookie if not in body
+    let tokenToDelete = sessionToken;
+    if (!tokenToDelete) {
+      tokenToDelete = request.cookies.get('guest_session')?.value;
+    }
+    
+    // Delete the session from the database if we have a token
+    if (tokenToDelete) {
+      await deleteGuestSession(tokenToDelete);
+      console.log('[API] Guest session deleted:', tokenToDelete.substring(0, 8) + '...');
+    } else {
+      console.log('[API] No session token provided for deletion');
+    }
+    
     // Create a response that clears the guest_session cookie
     const response = NextResponse.json({
       success: true,

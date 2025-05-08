@@ -58,16 +58,16 @@ function EventCard({
             <h3 className="font-medium text-lg mb-2">{title}</h3>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2" />
+                <Calendar className="h-4 w-4 mr-2 text-[#741914]" />
                 <span>{date}</span>
               </div>
               <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-2" />
+                <Clock className="h-4 w-4 mr-2 text-[#741914]" />
                 <span>{time}</span>
               </div>
               {showLocation ? (
                 <div className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-2" />
+                  <MapPin className="h-4 w-4 mr-2 text-[#741914]" />
                   <a 
                     href={maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(location)}`}
                     target="_blank"
@@ -79,7 +79,7 @@ function EventCard({
                 </div>
               ) : (
                 <div className="flex items-center text-blue-600">
-                  <MapPin className="h-4 w-4 mr-2" />
+                  <MapPin className="h-4 w-4 mr-2 text-[#741914]" />
                   <span>Sign in to view location</span>
                 </div>
               )}
@@ -94,19 +94,22 @@ function EventCard({
                   </div>
                 ) : (
                 <Button 
-                  variant="outline" 
+                  variant={hasResponded ? "outline" : "default"}
                   size="sm" 
-                  className="w-full shadow-sm hover:shadow-md transition-all hover:bg-[#741914] hover:text-white"
-                    onClick={() => onRsvpClick?.(eventId)}
+                  className={hasResponded 
+                    ? "w-full shadow-sm hover:shadow-md transition-all hover:bg-[#741914] hover:text-white"
+                    : "w-full bg-[#741914] hover:bg-[#641510] text-white shadow-md hover:shadow-lg transition-all"
+                  }
+                  onClick={() => onRsvpClick?.(eventId)}
                 >
                   {hasResponded ? "Edit RSVP" : "RSVP for this event"}
                 </Button>
                 )
               ) : (
                 <Button 
-                  variant="outline" 
+                  variant="default"
                   size="sm" 
-                  className="w-full shadow-sm hover:shadow-md transition-all hover:bg-[#741914] hover:text-white"
+                  className="w-full bg-[#741914] hover:bg-[#641510] text-white shadow-md hover:shadow-lg transition-all"
                   onClick={onLoginClick}
                 >
                   Sign in to RSVP
@@ -400,9 +403,9 @@ export default function Home() {
           <Image 
             src="leaf1.png" 
             alt="" 
-            width={120} 
+            width={110} 
             height={120} 
-            className="xl:w-[180px] xl:h-[180px]" 
+            className="xl:w-[170px] xl:h-[180px]" 
           />
         </div>
 
@@ -455,7 +458,17 @@ export default function Home() {
             <div className="h-px w-20 bg-primary/50 mx-auto"></div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto place-items-center">
+          {/* Flexible layout that properly centers all card configurations */}
+          <div className={`grid gap-8 mx-auto place-items-center ${
+            // If we only have 1 card, display in single column
+            (guest && eventCards.length === 1) || (!guest && publicEvents.length === 1) 
+              ? 'grid-cols-1 max-w-md' 
+              // If we have exactly 2 cards, use a 2-column grid with centered container
+              : (guest && eventCards.length === 2) || (!guest && publicEvents.length === 2)
+                ? 'grid-cols-1 md:grid-cols-2 max-w-2xl' 
+                // Otherwise use responsive grid that can fit up to 3 cards
+                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-5xl'
+          }`}>
             {guest ? (
               eventCards.length > 0 ? (
                 eventCards.map(event => (
@@ -478,7 +491,7 @@ export default function Home() {
                   />
                 ))
               ) : (
-                <div className="col-span-full text-center p-6 bg-muted rounded-lg">
+                <div className="text-center p-6 bg-muted rounded-lg col-span-full">
                   <p>No events available for RSVP at this time.</p>
                 </div>
               )
@@ -505,7 +518,7 @@ export default function Home() {
                   />
                 ))
               ) : (
-                <div className="col-span-full text-center p-6 bg-muted rounded-lg">
+                <div className="text-center p-6 bg-muted rounded-lg col-span-full">
                   <p>Sign in to see available events.</p>
                 </div>
               )

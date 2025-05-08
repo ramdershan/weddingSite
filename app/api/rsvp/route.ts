@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateGuestSession, updateGuestResponse } from '@/lib/supabase';
+import { validateGuestSession, updateGuestResponse, checkGuestEventAccess } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +46,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // No need to verify access here as updateGuestResponse will handle that
+    // Check if the guest has access to this event
+    const hasAccess = await checkGuestEventAccess(guest.id, eventCode);
+    if (!hasAccess) {
+      console.error(`Guest ${guest.full_name} (${guest.id}) attempted to RSVP for event ${eventCode} without access`);
+      return NextResponse.json(
+        { error: 'You are not invited to this event' },
+        { status: 403 }
+      );
+    }
     
     // Update guest's RSVP response using Supabase
     const success = await updateGuestResponse(

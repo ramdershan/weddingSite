@@ -6,6 +6,9 @@ export function createLogoutOverlay() {
   // Create the container element
   const overlayContainer = document.createElement('div');
   
+  // Add a data attribute to identify this as a logout overlay
+  overlayContainer.setAttribute('data-logout-overlay', 'true');
+  
   // Apply styles for the overlay
   overlayContainer.style.position = 'fixed';
   overlayContainer.style.top = '0';

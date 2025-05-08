@@ -935,4 +935,41 @@ export async function setGuestEventAccess(guestId: string, eventIds: string[]): 
   }
   
   return {}; // Success
+}
+
+// Function to check if a guest has access to a specific event
+export async function checkGuestEventAccess(guestId: string, eventCode: string): Promise<boolean> {
+  console.log(`[Supabase] Checking if guest ${guestId} has access to event ${eventCode}`);
+  try {
+    // First get the event ID from the event code
+    const { data: event, error: eventError } = await supabaseAdmin
+      .from('events')
+      .select('id')
+      .eq('code', eventCode)
+      .single();
+      
+    if (eventError || !event) {
+      console.error(`[Supabase] Event not found with code ${eventCode}:`, eventError);
+      return false;
+    }
+    
+    // Then check if the guest has access to this event
+    const { data: access, error: accessError } = await supabaseAdmin
+      .from('guest_event_access')
+      .select('can_rsvp')
+      .eq('guest_id', guestId)
+      .eq('event_id', event.id)
+      .single();
+      
+    if (accessError) {
+      console.error(`[Supabase] Error checking guest access:`, accessError);
+      return false;
+    }
+    
+    // Return true if the guest has access and can RSVP
+    return access && access.can_rsvp === true;
+  } catch (error) {
+    console.error(`[Supabase] Error checking guest event access:`, error);
+    return false;
+  }
 } 
