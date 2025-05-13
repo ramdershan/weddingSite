@@ -353,7 +353,7 @@ export default function Home() {
       </section>
 
       <section className="py-20 bg-[#f4d6c1] relative" id="our-story">
-        <div className="hidden md:block absolute top-4 xl:top-[35%] left-[8%] lg:left-0 2xl:left-[15%] z-30 transform -rotate-12 pointer-events-none">
+        {/* <div className="hidden md:block absolute top-4 xl:top-[35%] left-[8%] lg:left-0 2xl:left-[15%] z-30 transform -rotate-12 pointer-events-none">
           <Image 
             src="/flower1.png" 
             alt="" 
@@ -361,7 +361,7 @@ export default function Home() {
             height={170} 
             className="xl:w-[220px] xl:h-[220px]" 
           />
-        </div>
+        </div> */}
 
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -383,14 +383,14 @@ export default function Home() {
               </div>
               <div className="space-y-6">
                 <h3 className="text-2xl font-serif">How We Met</h3>
-                <p className="text-muted-foreground">
-                  Our journey began in the small city of Kelowna, where a chance encounter in class turned into a sweet friendship. As we graduated, the world changed around us in the early days of the pandemic and we found comfort in each other's company.
+                <p className="text-muted-foreground font-public-sans">
+                  Our journey began in the vibrant city of Kelowna, where a chance encounter in class turned into a beautiful friendship. What started as a simple conversation over assignments blossomed into something truly special.
                 </p>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground font-public-sans">
                   Through shared laughter, countless late-night conversations, and lots of FaceTime, we've grown together and discovered that we're truly better as a team.
                 </p>
-                <p className="text-muted-foreground">
-                  Now, with full hearts and deep gratitude, we're excited to begin the next chapter - together with our loved ones.
+                <p className="text-muted-foreground font-public-sans">
+                  Now, we're ready to begin our next chapter together, and we couldn't be more excited to share this moment with our loved ones.
                 </p>
               </div>
             </div>
@@ -399,7 +399,7 @@ export default function Home() {
       </section>
 
       <section className="py-20 bg-[#f6f2e7] relative" id="timeline">
-        <div className="hidden md:block absolute top-4 xl:top-[50%] right-[5%] xl:right-0 2xl:right-[8%] z-30 transform -rotate-12 pointer-events-none">
+        {/* <div className="hidden md:block absolute top-4 xl:top-[50%] right-[5%] xl:right-0 2xl:right-[8%] z-30 transform -rotate-12 pointer-events-none">
           <Image 
             src="leaf1.png" 
             alt="" 
@@ -407,7 +407,7 @@ export default function Home() {
             height={120} 
             className="xl:w-[170px] xl:h-[180px]" 
           />
-        </div>
+        </div> */}
 
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -448,9 +448,9 @@ export default function Home() {
       </section>
 
       <section className="py-20 bg-[#f4d6c1] relative" id="rsvp">
-        <div className="hidden md:block absolute top-4 left-[20%] xl:left-[25%] z-30 transform -rotate-5 pointer-events-none">
+        {/* <div className="hidden md:block absolute top-4 left-[20%] xl:left-[25%] z-30 transform -rotate-5 pointer-events-none">
           <Image src="/flower2.png" alt="" width={105} height={105} />
-        </div>
+        </div> */}
 
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">

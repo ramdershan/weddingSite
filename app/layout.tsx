@@ -1,6 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter, Cormorant_Garamond } from 'next/font/google';
+import { Inter, Cormorant_Garamond, Public_Sans } from 'next/font/google';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import Link from 'next/link';
 import { getWeddingDate } from '@/lib/utils';
@@ -21,6 +21,11 @@ const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
   display: 'swap',
   weight: ['300', '400', '500', '600', '700'],
+});
+
+const publicSans = Public_Sans({
+  subsets: ['latin'],
+  variable: '--font-public-sans',
 });
 
 export const metadata: Metadata = {
@@ -56,7 +61,7 @@ export default function RootLayout({
   console.log(`[Layout] Current pathname: ${pathname}`);
 
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cormorant.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cormorant.variable} ${publicSans.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
