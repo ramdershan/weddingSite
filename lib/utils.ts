@@ -50,7 +50,6 @@ export function navigateToHomeSection(sectionId: string): void {
   if (!isHomepage) {
     // If on another page, navigate to homepage with hash
     window.location.href = `/#${sectionId}`;
-    // The Home component will handle scrolling after navigation
     return;
   }
   

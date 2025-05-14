@@ -1,7 +1,7 @@
 // This script handles smooth scrolling for non-React elements
 document.addEventListener('DOMContentLoaded', function() {
   // Only apply to non-React navigation links (links outside our main React components)
-  const nonReactNavLinks = document.querySelectorAll('a[href^="/#"]:not([data-react-link="true"])');
+  const nonReactNavLinks = document.querySelectorAll('a[href^="/#"]:not([data-react-link="true"]), a[href^="#"]:not([data-react-link="true"])');
   
   nonReactNavLinks.forEach(link => {
     link.addEventListener('click', function(e) {
@@ -25,8 +25,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Smooth scroll to the target
         scrollToSection(targetId);
+      } else {
+        // If not on homepage, navigate to home with the hash
+        e.preventDefault();
+        window.location.href = href.startsWith('/') ? href : `/${href}`;
       }
-      // If not on homepage, let the default navigation happen
     });
   });
   

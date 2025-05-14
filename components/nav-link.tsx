@@ -43,7 +43,8 @@ export function NavLink({ href, children, className = "" }: NavLinkProps) {
         }
       } else {
         // If on a different page, navigate to homepage with the section hash
-        router.push(`/${href.includes('#') ? href : ''}`);
+        // Use window.location for direct navigation with hash
+        window.location.href = href.startsWith('/') ? href : `/${href}`;
       }
     } else {
       // Normal navigation for non-anchor links
