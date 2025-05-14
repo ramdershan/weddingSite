@@ -72,6 +72,7 @@ export type SupabaseEvent = {
   maps_link?: string;
   description: string;
   rsvp_deadline: string;
+  rsvp_open_date?: string;
   is_active: boolean;
   max_plus_ones: string;
   created_at: string;
@@ -90,6 +91,7 @@ export type EventData = {
   maps_link?: string;
   description: string;
   rsvpDeadline?: Date | null;
+  rsvpOpenDate?: Date | null;
   isParent: boolean;
   parentEventId: string | null;
   canRsvp: boolean;

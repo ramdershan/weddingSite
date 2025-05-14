@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
-import { isRsvpDeadlinePassed } from '@/lib/utils';
+import { isRsvpDeadlinePassed, isRsvpOpen, formatOpenDate } from '@/lib/utils';
 import { useGuestContext } from '@/context/guest-context';
 import { LoginModal } from '@/components/login-modal';
 
@@ -29,6 +29,7 @@ export default function RSVPPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [deadlinePassed, setDeadlinePassed] = useState<boolean>(false);
+  const [rsvpNotOpen, setRsvpNotOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   
   // Helper function to check if sign-out is in progress
@@ -89,8 +90,20 @@ export default function RSVPPage() {
       return;
     }
     
+    // Check if RSVP is open yet by looking at the first event's rsvpOpenDate
+    if (events && events.length > 0) {
+      // Find the main wedding event which typically has the open date
+      const weddingEvent = events.find((e: any) => e.id === 'wedding' && e.rsvpOpenDate);
+      // If no wedding event, take the first event with an open date
+      const eventWithOpenDate = weddingEvent || events.find((e: any) => e.rsvpOpenDate);
+      
+      if (eventWithOpenDate?.rsvpOpenDate) {
+        setRsvpNotOpen(!isRsvpOpen(eventWithOpenDate.rsvpOpenDate));
+      }
+    }
+    
     fetchGuestData();
-  }, [guest]);
+  }, [guest, events]);
   
   const fetchGuestData = async () => {
     if (!guest) return;
@@ -142,6 +155,25 @@ export default function RSVPPage() {
         variant: "destructive",
       });
       setDeadlinePassed(true);
+      return;
+    }
+    
+    // Double-check RSVP is open yet
+    if (rsvpNotOpen) {
+      // Find an event with an open date to show in the toast
+      let openDateText = "RSVPs are not open yet.";
+      if (events && events.length > 0) {
+        const eventWithOpenDate = events.find((e: any) => e.rsvpOpenDate);
+        if (eventWithOpenDate?.rsvpOpenDate) {
+          openDateText = `RSVPs will open on ${formatOpenDate(eventWithOpenDate.rsvpOpenDate)}.`;
+        }
+      }
+      
+      toast({
+        title: "RSVP Not Open Yet",
+        description: openDateText,
+        variant: "default",
+      });
       return;
     }
     
@@ -204,25 +236,54 @@ export default function RSVPPage() {
   
   if (deadlinePassed) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4">
-        <Card className="max-w-md w-full p-6">
-          <div className="flex flex-col items-center space-y-4 text-center">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-lg w-full mx-auto p-8 text-center">
+          <div className="flex justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
-            <h1 className="text-2xl font-bold">RSVP Period Has Ended</h1>
-            <p className="text-muted-foreground">
-              The deadline for submitting RSVPs has passed. Please contact the hosts directly for any questions.
-            </p>
-            <Button onClick={() => router.push('/')} variant="secondary">
-              Return to Home
-            </Button>
           </div>
+          <h1 className="text-2xl font-bold mb-4">RSVP Period Has Ended</h1>
+          <p className="mb-6 text-muted-foreground">
+            The deadline for RSVPs was January 1, 2026. If you need to make changes to your RSVP, please contact the hosts directly.
+          </p>
+          <Button 
+            onClick={() => window.location.href = '/#rsvp'}
+            variant="default"
+          >
+            Return to Homepage
+          </Button>
         </Card>
-        
-        <LoginModal 
-          isOpen={showLoginModal && !isSigningOut()} 
-          onClose={handleLoginModalClose} 
-        />
-      </main>
+      </div>
+    );
+  }
+  
+  if (rsvpNotOpen) {
+    // Get the open date text from the first event with an open date
+    let openDateText = "RSVPs are not open yet.";
+    if (events && events.length > 0) {
+      const eventWithOpenDate = events.find((e: any) => e.rsvpOpenDate);
+      if (eventWithOpenDate?.rsvpOpenDate) {
+        openDateText = `RSVPs will open on ${formatOpenDate(eventWithOpenDate.rsvpOpenDate)}.`;
+      }
+    }
+    
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-lg w-full mx-auto p-8 text-center">
+          <div className="flex justify-center mb-4">
+            <AlertTriangle className="h-12 w-12 text-blue-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-4">RSVP Not Open Yet</h1>
+          <p className="mb-6 text-muted-foreground">
+            {openDateText} Please check back later.
+          </p>
+          <Button 
+            onClick={() => window.location.href = '/#rsvp'}
+            variant="default"
+          >
+            Return to Homepage
+          </Button>
+        </Card>
+      </div>
     );
   }
   

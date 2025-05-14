@@ -72,6 +72,7 @@ function formatEventData(event: any): EventData {
     parentEventId: event.parent_event_id,
     canRsvp: true, // Default to true for public endpoint
     rsvpDeadline: event.rsvp_deadline ? new Date(event.rsvp_deadline) : null,
+    rsvpOpenDate: event.rsvp_open_date ? new Date(event.rsvp_open_date) : null,
     disabled: false
   };
 }

@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, MapPin, Heart, Camera, PartyPopper, Diamond } from 'lucide-react';
 import { PhotoGallerySection } from '@/components/photo-gallery-section';
 import { CountdownTimer } from '@/components/countdown-timer';
-import { getWeddingDate, isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed, navigateToHomeSection, scrollToSection } from '@/lib/utils';
+import { getWeddingDate, isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed, navigateToHomeSection, scrollToSection, isRsvpOpen, formatOpenDate } from '@/lib/utils';
 import { LoginModal } from '@/components/login-modal';
 import { useGuestContext } from '@/context/guest-context';
 import { RingIcon } from '@/components/icons/ring-icon';
@@ -240,7 +240,21 @@ export default function Home() {
         .map(event => {
           // Check if RSVP deadline has passed
           const deadlineHasPassed = event.rsvpDeadline ? new Date() > new Date(event.rsvpDeadline) : false;
-          const deadlineMessage = deadlineHasPassed ? "RSVP Deadline Passed" : "";
+          
+          // Check if RSVP is open yet
+          const rsvpIsOpen = isRsvpOpen(event.rsvpOpenDate);
+          
+          // Set appropriate message based on RSVP status
+          let deadlineMessage = "";
+          let isDisabled = false;
+          
+          if (deadlineHasPassed) {
+            deadlineMessage = "RSVP Deadline Passed";
+            isDisabled = true;
+          } else if (!rsvpIsOpen) {
+            deadlineMessage = `RSVP opens ${formatOpenDate(event.rsvpOpenDate)}`;
+            isDisabled = true;
+          }
           
           // Check if guest has already responded to this event
           const hasResponded = guest?.eventResponses && guest.eventResponses[event.id] ? true : false;
@@ -251,7 +265,7 @@ export default function Home() {
           return {
             ...event,
             icon: getEventIcon(event.id),
-            disabled: deadlineHasPassed,
+            disabled: isDisabled,
             deadlineMessage,
             hasResponded,
             time_display: (
@@ -279,12 +293,32 @@ export default function Home() {
       return events
         .filter(event => event.isParent)
         .map(event => {
+          // Check if RSVP deadline has passed
+          const deadlineHasPassed = event.rsvpDeadline ? new Date() > new Date(event.rsvpDeadline) : false;
+          
+          // Check if RSVP is open yet
+          const rsvpIsOpen = isRsvpOpen(event.rsvpOpenDate);
+          
+          // Set appropriate message based on RSVP status
+          let deadlineMessage = "";
+          let isDisabled = false;
+          
+          if (deadlineHasPassed) {
+            deadlineMessage = "RSVP Deadline Passed";
+            isDisabled = true;
+          } else if (!rsvpIsOpen) {
+            deadlineMessage = `RSVP opens ${formatOpenDate(event.rsvpOpenDate)}`;
+            isDisabled = true;
+          }
+          
           // Add timezone indicator based on event ID
           const timezone = event.id === 'engagement' ? 'MST' : 'IST';
           
           return {
             ...event,
             icon: getEventIcon(event.id),
+            disabled: isDisabled,
+            deadlineMessage,
             time_display: (
               <span>
                 {event.time_start}{event.time_end ? ` - ${event.time_end}` : ''}
@@ -353,16 +387,6 @@ export default function Home() {
       </section>
 
       <section className="py-20 bg-[#f4d6c1] relative" id="our-story">
-        {/* <div className="hidden md:block absolute top-4 xl:top-[35%] left-[8%] lg:left-0 2xl:left-[15%] z-30 transform -rotate-12 pointer-events-none">
-          <Image 
-            src="/flower1.png" 
-            alt="" 
-            width={170} 
-            height={170} 
-            className="xl:w-[220px] xl:h-[220px]" 
-          />
-        </div> */}
-
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-windsong mb-2">Our Story</h2>
@@ -371,7 +395,7 @@ export default function Home() {
           
           <div className="max-w-4xl mx-auto">
             <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
+              <div className="relative">
                 <img 
                   src="yr_ourstory.jpeg"
                   alt="Couple"
@@ -380,6 +404,15 @@ export default function Home() {
                     boxShadow: '0 0 30px rgba(0, 0, 0, 0.4)'
                   }}
                 />
+                <div className="absolute bottom-[-7%] left-[-25%] sm:bottom-[-6%] sm:left-[-25%] md:bottom-[-8%] md:left-[-30%] z-10 transform -rotate-12 pointer-events-none w-[45%] sm:w-[40%] md:w-[50%] h-auto">
+                  <Image 
+                    src="/flower1.png" 
+                    alt="" 
+                    width={300} 
+                    height={300}
+                    className="w-full h-full object-contain" 
+                  />
+                </div>
               </div>
               <div className="space-y-6">
                 <h3 className="text-2xl font-serif">How We Met</h3>
@@ -480,8 +513,8 @@ export default function Home() {
                     location={event.location}
                     icon={event.icon}
                     eventId={event.id}
-                    disabled={event.disabled || deadlinePassed}
-                    deadlineMessage={event.deadlineMessage || (deadlinePassed ? "RSVP Closed" : "")}
+                    disabled={event.disabled}
+                    deadlineMessage={event.deadlineMessage}
                     guest={guest}
                     onLoginClick={() => setShowLoginModal(true)}
                     onRsvpClick={handleRsvpClick}
@@ -507,8 +540,8 @@ export default function Home() {
                     location={event.location}
                     icon={event.icon}
                     eventId={event.id}
-                    disabled={deadlinePassed}
-                    deadlineMessage={deadlinePassed ? "RSVP Closed" : ""}
+                    disabled={event.disabled}
+                    deadlineMessage={event.deadlineMessage}
                     guest={null}
                     onLoginClick={() => setShowLoginModal(true)}
                     onRsvpClick={handleRsvpClick}

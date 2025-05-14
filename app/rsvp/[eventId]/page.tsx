@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,11 +11,12 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Guest } from '@/lib/types';
-import { Loader2, CheckCircle, Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
-import { isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed, navigateToHomeSection } from '@/lib/utils';
+import { Loader2, CheckCircle, Calendar, Clock, MapPin, AlertTriangle, ArrowLeft, ArrowUp, XCircle } from 'lucide-react';
+import { isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed, navigateToHomeSection, isRsvpOpen, formatOpenDate } from '@/lib/utils';
 import { useGuestContext } from '@/context/guest-context';
 import { LoginModal } from '@/components/login-modal';
 import { LoadingScreen } from '@/components/loading-screen';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function EventRSVPPage({ params }: { params: { eventId: string } }) {
   const router = useRouter();
@@ -72,6 +73,11 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
   // Count down from 15 to 0
   const [redirectCountdown, setRedirectCountdown] = useState<number>(15);
   
+  // State to track if RSVP is not open yet
+  const [rsvpNotOpen, setRsvpNotOpen] = useState<boolean>(false);
+  // Count down for not-open scenario too
+  const [notOpenCountdown, setNotOpenCountdown] = useState<number>(15);
+  
   // Helper function to check if sign-out is in progress - defined early so it can be used in useEffect
   const isSigningOut = () => {
     // Check for the logout overlay element
@@ -106,6 +112,19 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       ? isEngagementRsvpDeadlinePassed() 
       : isRsvpDeadlinePassed();
   };
+  
+  // Helper function to check if RSVP is open yet for this specific event
+  const checkEventOpen = (eventObj: any) => {
+    if (!eventObj) return true; // Default to open if no event object
+    
+    // First check if event has a specific open date in the database
+    if (eventObj.rsvpOpenDate) {
+      return isRsvpOpen(eventObj.rsvpOpenDate);
+    }
+    
+    // If no specific open date, assume it's open
+    return true;
+  };
 
   // Helper function to get the formatted deadline text
   const getDeadlineText = () => {
@@ -124,6 +143,20 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     return eventId === 'engagement' 
       ? "Please RSVP by September 1, 2025" 
       : "Please RSVP by January 1, 2026";
+  };
+  
+  // Helper function to get the formatted open date string for the not-yet-open message
+  const getOpenDateText = () => {
+    const event = events.find((e: any) => e.id === eventId);
+    
+    if (event?.rsvpOpenDate) {
+      return `RSVPs for the ${event.title} will open on ${formatOpenDate(event.rsvpOpenDate)}. We are just as excited as you are to get to this event! We appreciate your patience and look forward to your response once RSVPs are open.`;
+    }
+    
+    // Fallback text based on event type
+    return eventId === 'engagement' 
+      ? "RSVPs for the Engagement ceremony will open on May 14, 2025. We appreciate your patience and look forward to your response once RSVPs are open." 
+      : "RSVPs for this event are not open yet. Please check back later when RSVPs open.";
   };
   
   // Helper function to get the formatted deadline date string for the past deadline message
@@ -145,48 +178,75 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       : "The deadline for RSVPs was January 1, 2026.";
   };
   
-  // Helper function to show toast with countdown and handle redirect
+  // Function to show toast countdown for deadline passed
   const showDeadlineToastWithCountdown = useCallback(() => {
-    // Mark that we've shown the toast to prevent showing it again
     setHasShownDeadlineToast(true);
     
-    // Show initial toast
+    // Show toast with countdown
     toast({
       title: "RSVP Deadline Passed",
-      description: `Sorry, ${getPastDeadlineText().toLowerCase()} You will be redirected to the home page in 15 seconds.`,
-      duration: 15000, // 15 seconds
-      variant: "destructive"
+      description: (
+        <div className="space-y-2">
+          <p>{getPastDeadlineText()}</p>
+          <p>Redirecting to home page in {redirectCountdown} seconds...</p>
+        </div>
+      ),
+      variant: "destructive",
+      duration: 16000,
     });
     
-    // Start countdown from 15
-    setRedirectCountdown(15);
-    
-    // Set up interval to update toast every second
+    // Start countdown
     const countdownInterval = setInterval(() => {
-      setRedirectCountdown(prevCount => {
-        // If we hit 0, clear interval and redirect
-        if (prevCount <= 1) {
+      setRedirectCountdown(prev => {
+        // If countdown reaches 0, redirect and clear interval
+        if (prev <= 1) {
           clearInterval(countdownInterval);
+          // Redirect to home page RSVP section
           window.location.href = '/#rsvp';
           return 0;
         }
-        
-        // Update toast with new countdown
-        const newCount = prevCount - 1;
-        toast({
-          title: "RSVP Deadline Passed",
-          description: `Sorry, ${getPastDeadlineText().toLowerCase()} You will be redirected to the home page in ${newCount} seconds.`,
-          duration: 2000, // Enough time to read before next update
-          variant: "destructive"
-        });
-        
-        return newCount;
+        return prev - 1;
       });
     }, 1000);
     
-    // Clean up interval if component unmounts
+    // Clean up interval
     return () => clearInterval(countdownInterval);
-  }, [toast, getPastDeadlineText, setHasShownDeadlineToast, setRedirectCountdown]);
+  }, [toast, redirectCountdown, getPastDeadlineText]);
+  
+  // Function to show toast countdown for RSVP not open yet
+  const showNotOpenToastWithCountdown = useCallback(() => {
+    setRsvpNotOpen(true);
+    
+    // Show toast with countdown
+    toast({
+      title: "RSVP Not Open Yet",
+      description: (
+        <div className="space-y-2">
+          <p>{getOpenDateText()}</p>
+          <p>Redirecting to home page in {notOpenCountdown} seconds...</p>
+        </div>
+      ),
+      variant: "default",
+      duration: 16000,
+    });
+    
+    // Start countdown
+    const countdownInterval = setInterval(() => {
+      setNotOpenCountdown(prev => {
+        // If countdown reaches 0, redirect and clear interval
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          // Redirect to home page RSVP section
+          window.location.href = '/#rsvp';
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Clean up interval
+    return () => clearInterval(countdownInterval);
+  }, [toast, notOpenCountdown, getOpenDateText]);
   
   // Define fetchGuestData and autoLoginWithName functions before they're used in useEffect
   const fetchGuestData = useCallback(async () => {
@@ -343,9 +403,10 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         
         // If this is a parent event, find child events that the guest can RSVP to
         if (event.isParent) {
+          // Only include child events that this guest has explicit RSVP access to
           const availableChildEvents = events.filter(e => 
             e.parentEventId === eventId && 
-            e.canRsvp
+            e.canRsvp === true // Ensure it's specifically true, not just truthy
           );
           
           if (availableChildEvents.length > 0) {
@@ -423,7 +484,13 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
             if (!childEventsManuallyEdited) {
               setSelectedChildEvents(initialSelectedState);
             }
+          } else {
+            // No available child events for this guest, ensure childEvents is empty
+            setChildEvents([]);
           }
+        } else {
+          // Not a parent event, ensure childEvents is empty
+          setChildEvents([]);
         }
         
         setDataLoadingComplete(true);
@@ -530,84 +597,103 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
         
         // If there are child events in the API response, process them
         if (data.event.isParent && data.childEvents && data.childEvents.length > 0) {
-          // Sort child events in the same order as the timeline
-          const sortedChildEvents = [...data.childEvents].sort((a, b) => {
-            try {
-              // Get position in the predefined order
-              const orderA = eventOrder[a.id] || 999; // Default to high number if not in order map
-              const orderB = eventOrder[b.id] || 999;
-              
-              // First sort by our predefined order
-              if (orderA !== orderB) {
-                return orderA - orderB;
+          // Filter child events to only include those the guest can RSVP to
+          const accessibleChildEvents = guest 
+            ? data.childEvents.filter((childEvent: any) => {
+                // Only include events the guest actually has RSVP access to
+                const canRsvpToChild = guest.invitedEvents?.includes(childEvent.id) && childEvent.canRsvp === true;
+                return canRsvpToChild;
+              })
+            : [];
+            
+          // Only proceed if there are accessible child events
+          if (accessibleChildEvents.length > 0) {
+            // Sort child events in the same order as the timeline
+            const sortedChildEvents = [...accessibleChildEvents].sort((a, b) => {
+              try {
+                // Get position in the predefined order
+                const orderA = eventOrder[a.id] || 999; // Default to high number if not in order map
+                const orderB = eventOrder[b.id] || 999;
+                
+                // First sort by our predefined order
+                if (orderA !== orderB) {
+                  return orderA - orderB;
+                }
+                
+                // If same type of event (unlikely), fallback to date/time sort
+                const dateAStr = a.raw_date || '1970-01-01';
+                const dateBStr = b.raw_date || '1970-01-01';
+                
+                const [yearA, monthA, dayA] = dateAStr.split('-').map(Number);
+                const [yearB, monthB, dayB] = dateBStr.split('-').map(Number);
+                
+                // Compare Year
+                if (yearA !== yearB) return yearA - yearB;
+                // Compare Month
+                if (monthA !== monthB) return monthA - monthB;
+                // Compare Day
+                if (dayA !== dayB) return dayA - dayB;
+                
+                // Only if same day, compare time
+                const timeAStr = a.raw_time_start || '00:00:00';
+                const timeBStr = b.raw_time_start || '00:00:00';
+                
+                const [hourA, minuteA] = timeAStr.split(':').map(Number);
+                const [hourB, minuteB] = timeBStr.split(':').map(Number);
+                
+                // Compare Hour
+                if (hourA !== hourB) return hourA - hourB;
+                // Compare Minute
+                return minuteA - minuteB;
+              } catch (err) {
+                console.error("Error during child events sort (API):", err, "Event A:", a, "Event B:", b);
+                return 0; // Prevent crash
               }
-              
-              // If same type of event (unlikely), fallback to date/time sort
-              const dateAStr = a.raw_date || '1970-01-01';
-              const dateBStr = b.raw_date || '1970-01-01';
-              
-              const [yearA, monthA, dayA] = dateAStr.split('-').map(Number);
-              const [yearB, monthB, dayB] = dateBStr.split('-').map(Number);
-              
-              // Compare Year
-              if (yearA !== yearB) return yearA - yearB;
-              // Compare Month
-              if (monthA !== monthB) return monthA - monthB;
-              // Compare Day
-              if (dayA !== dayB) return dayA - dayB;
-              
-              // Only if same day, compare time
-              const timeAStr = a.raw_time_start || '00:00:00';
-              const timeBStr = b.raw_time_start || '00:00:00';
-              
-              const [hourA, minuteA] = timeAStr.split(':').map(Number);
-              const [hourB, minuteB] = timeBStr.split(':').map(Number);
-              
-              // Compare Hour
-              if (hourA !== hourB) return hourA - hourB;
-              // Compare Minute
-              return minuteA - minuteB;
-            } catch (err) {
-              console.error("Error during child events sort (API):", err, "Event A:", a, "Event B:", b);
-              return 0; // Prevent crash
-            }
-          });
-          
-          // Add timezone to each child event
-          const childEventsWithTimezone = sortedChildEvents.map(childEvent => {
-            const timezone = childEvent.id === 'engagement' ? 'MST' : 'IST';
-            return {
-              ...childEvent,
-              time_start: (
-                <span className="inline-flex items-center">
-                  {childEvent.time_start}
-                  <span className="mx-1 text-muted-foreground/60 inline-block">·</span>
-                  <span className="text-muted-foreground/80 inline-block">
-                    {timezone}
+            });
+            
+            // Add timezone to each child event
+            const childEventsWithTimezone = sortedChildEvents.map(childEvent => {
+              const timezone = childEvent.id === 'engagement' ? 'MST' : 'IST';
+              return {
+                ...childEvent,
+                time_start: (
+                  <span className="inline-flex items-center">
+                    {childEvent.time_start}
+                    <span className="mx-1 text-muted-foreground/60 inline-block">·</span>
+                    <span className="text-muted-foreground/80 inline-block">
+                      {timezone}
+                    </span>
                   </span>
-                </span>
-              )
-            };
-          });
-          
-          setChildEvents(childEventsWithTimezone);
-          
-          // Initialize selected state for child events
-          const initialSelectedState: Record<string, boolean> = {};
-          sortedChildEvents.forEach(childEvent => {
-            // If the guest already responded, use that response
-            if (guest && guest.eventResponses && childEvent.id in guest.eventResponses) {
-              initialSelectedState[childEvent.id] = 
-                guest.eventResponses[childEvent.id].response === "Yes";
-            } else {
-              // Default to false otherwise
-              initialSelectedState[childEvent.id] = false;
+                )
+              };
+            });
+            
+            setChildEvents(childEventsWithTimezone);
+            
+            // Initialize selected state for child events
+            const initialSelectedState: Record<string, boolean> = {};
+            sortedChildEvents.forEach(childEvent => {
+              // If the guest already responded, use that response
+              if (guest && guest.eventResponses && childEvent.id in guest.eventResponses) {
+                initialSelectedState[childEvent.id] = 
+                  guest.eventResponses[childEvent.id].response === "Yes";
+              } else {
+                // Default to false otherwise
+                initialSelectedState[childEvent.id] = false;
+              }
+            });
+            
+            // Only set the child events if they haven't been manually edited
+            if (!childEventsManuallyEdited) {
+              setSelectedChildEvents(initialSelectedState);
             }
-          });
-          
-          if (!childEventsManuallyEdited) {
-            setSelectedChildEvents(initialSelectedState);
+          } else {
+            // No accessible child events, ensure the childEvents array is empty
+            setChildEvents([]);
           }
+        } else {
+          // Not a parent event or no child events, ensure the childEvents array is empty
+          setChildEvents([]);
         }
       } else {
         // API error, redirect to home
@@ -657,9 +743,19 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     const deadlineHasPassed = checkEventDeadline(currentEvent);
     setDeadlinePassed(deadlineHasPassed);
     
+    // Check if RSVP is open yet
+    const isRsvpOpen = checkEventOpen(currentEvent);
+    
     // If deadline has passed, show toast and redirect to home page RSVP section
     if (deadlineHasPassed && !hasShownDeadlineToast) {
       showDeadlineToastWithCountdown();
+      return;
+    }
+    
+    // If RSVP is not open yet, show toast and redirect
+    if (!isRsvpOpen && !rsvpNotOpen) {
+      showNotOpenToastWithCountdown();
+      return;
     }
     
     // Redirect if invalid event ID (will be handled by fetchEventDetails)
@@ -686,7 +782,7 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
       setNeedsLoginModal(true);
       setDataLoadingComplete(true); // No data to load in this case
     }
-  }, [eventId, eventDetails, guest, searchParams, dataLoadingComplete, events, toast, hasShownDeadlineToast]);
+  }, [eventId, eventDetails, guest, searchParams, dataLoadingComplete, events, toast, hasShownDeadlineToast, rsvpNotOpen]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -715,9 +811,16 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
     
       // Double-check deadline hasn't passed using our more accurate function
       if (checkEventDeadline(eventInGuestList)) {
-      setDeadlinePassed(true);
+        setDeadlinePassed(true);
         showDeadlineToastWithCountdown();
-      return;
+        return;
+      }
+      
+      // Double-check RSVP is open yet
+      if (!checkEventOpen(eventInGuestList)) {
+        setRsvpNotOpen(true);
+        showNotOpenToastWithCountdown();
+        return;
       }
     }
     
@@ -854,7 +957,25 @@ export default function EventRSVPPage({ params }: { params: { eventId: string } 
               <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
               <h2 className="text-xl font-semibold">RSVP Period Has Ended</h2>
               <p className="text-muted-foreground">
-                {getPastDeadlineText()} If you need to update your response, please contact the hosts directly. You will be redirected to the home page in 10 seconds.
+                {getPastDeadlineText()} If you need to update your response, please contact the hosts directly. You will be redirected to the home page in {redirectCountdown} seconds.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+  
+  if (rsvpNotOpen) {
+    return (
+      <main className="min-h-screen bg-[#f4d6c1] flex flex-col items-center justify-center p-4 pt-24">
+        <div className="max-w-md w-full mx-auto">
+          <Card className="p-6 shadow-lg bg-[#f6f2e7]">
+            <div className="text-center space-y-4">
+              <Clock className="h-12 w-12 text-blue-500 mx-auto" />
+              <h2 className="text-xl font-semibold">RSVP Not Open Yet</h2>
+              <p className="text-muted-foreground">
+                {getOpenDateText()} Please check back later. You will be redirected to the home page in {notOpenCountdown} seconds.
               </p>
             </div>
           </Card>

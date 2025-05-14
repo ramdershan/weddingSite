@@ -17,6 +17,25 @@ export function isEngagementRsvpDeadlinePassed(): boolean {
   return now >= deadline;
 }
 
+// Check if RSVP is open based on the event's open date
+export function isRsvpOpen(openDate: string | Date | null | undefined): boolean {
+  if (!openDate) return true; // If no open date is set, assume RSVPs are open
+  const openDateObj = new Date(openDate);
+  const now = new Date();
+  return now >= openDateObj;
+}
+
+// Format date for display
+export function formatOpenDate(date: string | Date | null | undefined): string {
+  if (!date) return "";
+  const dateObj = new Date(date);
+  return dateObj.toLocaleDateString('en-US', { 
+    month: 'long', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+}
+
 export function getWeddingDate(): Date {
   // Use a date that is definitely in the future
   const weddingDate = new Date('2026-01-24T13:00:00'); // 1:00 PM on January 24th, 2026

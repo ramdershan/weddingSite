@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
         maps_link: event.maps_link || `https://maps.google.com/maps?q=${encodeURIComponent(event.location)}`,
         description: event.description,
         rsvpDeadline: event.rsvp_deadline ? new Date(event.rsvp_deadline) : null,
+        rsvpOpenDate: event.rsvp_open_date ? new Date(event.rsvp_open_date) : null,
         isParent: isParent,
         parentEventId: event.parent_event_id ? eventCodeMap.get(event.parent_event_id) : null,
         canRsvp: access.find(a => a.event_id === event.id)?.can_rsvp ?? false
