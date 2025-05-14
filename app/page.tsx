@@ -361,12 +361,12 @@ export default function Home() {
           
           {guest ? (
             <p className="text-xl md:text-2xl text-white/90 mb-2 font-light">
-              Dear {guest.fullName}, you're invited to our wedding celebration!
+              Dear {guest.fullName}, you're invited to our engagement celebration!
             </p>
           ) : null}
           
           <p className="text-xl md:text-2xl text-white/90 mb-8 font-light tracking-wide">
-            January 24, 2026 • Mangli Lake Farm
+            September 27, 2025 • ACCA Banquet, Edmonton
           </p>
         </div>
       </section>
@@ -423,7 +423,7 @@ export default function Home() {
                   Through shared laughter, countless late-night conversations, and lots of FaceTime, we've grown together and discovered that we're truly better as a team.
                 </p>
                 <p className="text-muted-foreground font-public-sans">
-                  Now, we're ready to begin our next chapter together, and we couldn't be more excited to share this moment with our loved ones.
+                  Now, we are ready to begin our next chapter together, and we are thrilled to share this moment with our loved ones.
                 </p>
               </div>
             </div>
