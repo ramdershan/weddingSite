@@ -358,6 +358,49 @@ export async function getEventByCode(eventCode: string): Promise<SupabaseEvent |
   }
 }
 
+export async function getEventById(eventId: string): Promise<SupabaseEvent | null> {
+  console.log(`[Supabase] Fetching event with ID: ${eventId}`);
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      console.error('Error fetching event by ID:', error);
+      return null;
+    }
+
+    console.log(`[Supabase] Found event: ${data?.name || 'Not found'}`);
+    return data;
+  } catch (error) {
+    console.error('Error in getEventById:', error);
+    return null;
+  }
+}
+
+export async function getEventDateByCode(eventCode: string): Promise<Date | null> {
+  try {
+    const event = await getEventByCode(eventCode);
+    if (!event) {
+      console.error(`Event with code ${eventCode} not found`);
+      return null;
+    }
+    
+    // Create a date from the event date and time_start
+    const [year, month, day] = event.date.split('-').map(Number);
+    const [hours, minutes] = event.time_start.split(':').map(Number);
+    
+    // Month is 0-indexed in JavaScript Date
+    return new Date(year, month - 1, day, hours, minutes);
+  } catch (error) {
+    console.error(`Error getting date for event code ${eventCode}:`, error);
+    return null;
+  }
+}
+
 // Get guest RSVP responses from Supabase
 export async function getGuestResponses(guestId: string): Promise<Record<string, any> | null> {
   console.log(`[Supabase] Fetching RSVP responses for guest ID: ${guestId}`);

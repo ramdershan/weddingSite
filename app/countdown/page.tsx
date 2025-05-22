@@ -13,11 +13,25 @@ export default function CountdownPage() {
   const [minutes, setMinutes] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [weddingDate, setWeddingDate] = useState<Date>(new Date('2026-01-24T13:00:00')); // Default until loaded
   
-  const weddingDate = getWeddingDate();
+  // Fetch the wedding date from Supabase
+  useEffect(() => {
+    async function fetchWeddingDate() {
+      try {
+        const date = await getWeddingDate();
+        setWeddingDate(date);
+        console.log('Loaded wedding date from Supabase:', date.toISOString());
+      } catch (error) {
+        console.error('Failed to load wedding date from Supabase:', error);
+      }
+    }
+    
+    fetchWeddingDate();
+  }, []);
   
   useEffect(() => {
-    const target = new Date(weddingDate);
+    const target = weddingDate;
     
     const interval = setInterval(() => {
       const now = new Date();
