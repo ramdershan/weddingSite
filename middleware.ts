@@ -157,7 +157,7 @@ export async function middleware(request: NextRequest) {
       value: sessionCookie.value,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+      maxAge: 24 * 60 * 60, // 24 hours in seconds
       path: '/',
       sameSite: 'lax',
     });

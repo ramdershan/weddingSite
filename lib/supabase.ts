@@ -249,9 +249,9 @@ export async function createGuestSession(guestId: string): Promise<GuestSession 
     const sessionToken = Math.random().toString(36).substring(2, 15) + 
                          Math.random().toString(36).substring(2, 15);
 
-    // Set expiration to 30 days from now
+    // Set expiration to 24 hours from now
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setHours(expiresAt.getHours() + 24);
 
     const { data, error } = await supabaseAdmin
       .from('guest_sessions')
