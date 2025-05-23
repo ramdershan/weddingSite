@@ -362,12 +362,28 @@ export default function Home() {
           
           {guest ? (
             <p className="text-xl md:text-2xl text-white/90 mb-2 font-light">
-              Dear {guest.fullName}, you're invited to our engagement celebration!
+              {guest.invitedEvents && guest.invitedEvents.length > 0 && 
+               guest.invitedEvents.some((event: any) => 
+                 (typeof event === 'string' && event !== 'engagement') || 
+                 (typeof event === 'object' && event.code !== 'engagement')
+               ) ? (
+                <>Dear {guest.fullName}, you're invited to our wedding celebration!</>
+              ) : (
+                <>Dear {guest.fullName}, you're invited to our engagement celebration!</>
+              )}
             </p>
           ) : null}
           
           <p className="text-xl md:text-2xl text-white/90 mb-8 font-light tracking-wide">
-            September 27, 2025 • ACCA Banquet, Edmonton
+            {guest && guest.invitedEvents && guest.invitedEvents.length > 0 && 
+             guest.invitedEvents.some((event: any) => 
+               (typeof event === 'string' && event !== 'engagement') || 
+               (typeof event === 'object' && event.code !== 'engagement')
+             ) ? (
+              <>January 24, 2026 • Mangli Lake Farm</>
+            ) : (
+              <>September 27, 2025 • ACCA Banquet, Edmonton</>
+            )}
           </p>
         </div>
       </section>
@@ -381,7 +397,11 @@ export default function Home() {
           </div>
           
           <CountdownTimer 
-            targetDate={engagementDate} 
+            targetDate={guest && guest.invitedEvents && guest.invitedEvents.length > 0 && 
+              guest.invitedEvents.some((event: any) => 
+                (typeof event === 'string' && event !== 'engagement') || 
+                (typeof event === 'object' && event.code !== 'engagement')
+              ) ? weddingDate : engagementDate} 
             className="max-w-3xl mx-auto" 
           />
         </div>
@@ -591,18 +611,18 @@ export default function Home() {
       <footer className="py-8 bg-white text-center">
         <div className="container mx-auto px-4 bg-white">
           <h3 className="text-2xl font-windsong mb-2">Yukti & Ram</h3>
-          <p className="text-muted-foreground mb-6">January 24, 2026</p>
-          
-          {/* <div className="flex justify-center space-x-4 mb-6">
-            <a href="#" className="text-muted-foreground hover:text-primary">
-              <span className="sr-only">Instagram</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-instagram"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-            </a>
-            <a href="#" className="text-muted-foreground hover:text-primary">
-              <span className="sr-only">Facebook</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-            </a>
-          </div> */}
+          <p className="text-muted-foreground mb-6">
+            {guest && guest.invitedEvents && guest.invitedEvents.length > 0 && 
+              guest.invitedEvents.some((event: any) => 
+                (typeof event === 'string' && event !== 'engagement') || 
+                (typeof event === 'object' && event.code !== 'engagement')
+              ) ? (
+              <>January 24, 2026</>
+            ) : (
+              <>September 27, 2025</>
+            )}
+          </p>
+
           
           <p className="text-sm text-muted-foreground">
             Made with <Heart className="inline-block h-3 w-3 text-red-500" /> for our special day
