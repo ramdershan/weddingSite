@@ -58,7 +58,7 @@ function SubEventStats({
   useEffect(() => {
     const fetchInvitedCount = async () => {
       try {
-        const response = await fetch(`/api/admin/invited-count?eventId=${eventId}`);
+        const response = await fetch(`/api/admin/invited-count?eventId=${eventId}&activeOnly=true`);
         if (response.ok) {
           const data = await response.json();
           setInvitedCount(data.count || 0);
@@ -295,6 +295,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('events');
   const [activeEventTab, setActiveEventTab] = useState('engagement');
   const [activeCsvTab, setActiveCsvTab] = useState('all');
+  const [showInactiveGuests, setShowInactiveGuests] = useState(false); // Default to hiding inactive guests
 
   // Check if user is authenticated
   useEffect(() => {
@@ -346,35 +347,38 @@ export default function AdminDashboard() {
         console.log('[Admin Page] Processing dietary restrictions...');
         const eventRestrictionsMap: Record<string, DietaryInfo[]> = {};
 
-        fetchedGuests.forEach((guest: Guest) => {
-          // Add guest-level dietary restrictions to all events the guest is responding to
-          if (guest.dietaryRestrictions && guest.dietaryRestrictions.trim()) {
-            // Check which events this guest has responded to
-            if (guest.eventResponses) {
-              Object.keys(guest.eventResponses).forEach(eventId => {
-                const response = guest.eventResponses?.[eventId];
-                // Only add dietary restriction to events the guest is attending
-                if (response?.response === "Yes" || response?.response === "Maybe") {
-                  if (!eventRestrictionsMap[eventId]) {
-                    eventRestrictionsMap[eventId] = [];
+        // Only include active guests when processing dietary restrictions
+        fetchedGuests
+          .filter(guest => guest.isActive)
+          .forEach((guest: Guest) => {
+            // Add guest-level dietary restrictions to all events the guest is responding to
+            if (guest.dietaryRestrictions && guest.dietaryRestrictions.trim()) {
+              // Check which events this guest has responded to
+              if (guest.eventResponses) {
+                Object.keys(guest.eventResponses).forEach(eventId => {
+                  const response = guest.eventResponses?.[eventId];
+                  // Only add dietary restriction to events the guest is attending
+                  if (response?.response === "Yes" || response?.response === "Maybe") {
+                    if (!eventRestrictionsMap[eventId]) {
+                      eventRestrictionsMap[eventId] = [];
+                    }
+                    
+                    const restrictionText = guest.dietaryRestrictions?.trim() || '';
+                    
+                    // Avoid duplicate entries
+                    if (!eventRestrictionsMap[eventId].some(item => 
+                      item.guestName === guest.fullName && item.restriction === restrictionText
+                    )) {
+                      eventRestrictionsMap[eventId].push({
+                        guestName: guest.fullName,
+                        restriction: restrictionText
+                      });
+                    }
                   }
-                  
-                  const restrictionText = guest.dietaryRestrictions?.trim() || '';
-                  
-                  // Avoid duplicate entries
-                  if (!eventRestrictionsMap[eventId].some(item => 
-                    item.guestName === guest.fullName && item.restriction === restrictionText
-                  )) {
-                    eventRestrictionsMap[eventId].push({
-                      guestName: guest.fullName,
-                      restriction: restrictionText
-                    });
-                  }
-                }
-              });
+                });
+              }
             }
-          }
-        });
+          });
         
         console.log('[Admin Page] Processed dietary restrictions map (for Dietary tab):', eventRestrictionsMap);
         setDietaryRestrictions(eventRestrictionsMap);
@@ -409,7 +413,7 @@ export default function AdminDashboard() {
 
   const handleDownloadCSV = async (eventId: string) => {
     try {
-      const response = await fetch(`/api/admin/download?event=${eventId}`);
+      const response = await fetch(`/api/admin/download?event=${eventId}&activeOnly=${!showInactiveGuests}`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -788,6 +792,24 @@ export default function AdminDashboard() {
             
             {activeTab === 'guest-data' && (
               <div className="space-y-6">
+                {/* Add toggle for showing/hiding inactive guests */}
+                <div className="flex justify-end mb-4">
+                  <div className="flex items-center space-x-2">
+                    <label htmlFor="show-inactive" className="text-sm font-medium">
+                      {showInactiveGuests ? "Showing inactive guests" : "Hiding inactive guests"}
+                    </label>
+                    <Button
+                      id="show-inactive"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowInactiveGuests(!showInactiveGuests)}
+                      className="flex items-center space-x-1 h-8"
+                    >
+                      {showInactiveGuests ? "Hide Inactive" : "Show Inactive"}
+                    </Button>
+                  </div>
+                </div>
+                
                 {/* Tabs for different CSV views */}
                 <Tabs defaultValue="all" className="w-full">
                   <TabsList>
@@ -802,9 +824,9 @@ export default function AdminDashboard() {
                   
                   <TabsContent value="all">
                     <GuestDataTable 
-                    guests={guests} 
-                    title="All Guests" 
-                      description={`${guests.length} guests in total`}
+                      guests={guests.filter(guest => showInactiveGuests || guest.isActive)} 
+                      title="All Guests" 
+                      description={`${guests.filter(guest => showInactiveGuests || guest.isActive).length} guests in total`}
                       onDownload={() => handleDownloadCSV('all')}
                       dataType="all"
                     />
@@ -812,29 +834,29 @@ export default function AdminDashboard() {
                   
                   <TabsContent value="engagement">
                     <GuestDataTable 
-                      guests={guests.filter(guest => guest.eventResponses?.engagement)} 
-                    title="Engagement Ceremony Guests" 
+                      guests={guests.filter(guest => (showInactiveGuests || guest.isActive) && guest.eventResponses?.engagement)} 
+                      title="Engagement Ceremony Guests" 
                       description={`Guests with Engagement Ceremony responses`}
-                    onDownload={() => handleDownloadCSV('engagement')} 
+                      onDownload={() => handleDownloadCSV('engagement')} 
                       dataType="event"
-                    eventId="engagement"
-                  />
+                      eventId="engagement"
+                    />
                   </TabsContent>
                   
                   <TabsContent value="wedding">
                     <GuestDataTable 
-                      guests={guests.filter(guest => guest.eventResponses?.wedding)} 
-                    title="Wedding Ceremony Guests" 
+                      guests={guests.filter(guest => (showInactiveGuests || guest.isActive) && guest.eventResponses?.wedding)} 
+                      title="Wedding Ceremony Guests" 
                       description={`Guests with Wedding Ceremony responses`}
-                    onDownload={() => handleDownloadCSV('wedding')} 
+                      onDownload={() => handleDownloadCSV('wedding')} 
                       dataType="event"
-                    eventId="wedding"
-                  />
+                      eventId="wedding"
+                    />
                   </TabsContent>
                   
                   <TabsContent value="sangeet">
                     <GuestDataTable 
-                      guests={guests.filter(guest => guest.eventResponses?.sangeet)} 
+                      guests={guests.filter(guest => (showInactiveGuests || guest.isActive) && guest.eventResponses?.sangeet)} 
                       title="Sangeet Guests"
                       description={`Guests with Sangeet responses`}
                       onDownload={() => handleDownloadCSV('sangeet')}
@@ -845,7 +867,7 @@ export default function AdminDashboard() {
                   
                   <TabsContent value="haldi">
                     <GuestDataTable 
-                      guests={guests.filter(guest => guest.eventResponses?.haldi)} 
+                      guests={guests.filter(guest => (showInactiveGuests || guest.isActive) && guest.eventResponses?.haldi)} 
                       title="Haldi Guests"
                       description={`Guests with Haldi responses`}
                       onDownload={() => handleDownloadCSV('haldi')}
@@ -856,7 +878,7 @@ export default function AdminDashboard() {
                   
                   <TabsContent value="mehndi">
                     <GuestDataTable 
-                      guests={guests.filter(guest => guest.eventResponses?.mehndi)} 
+                      guests={guests.filter(guest => (showInactiveGuests || guest.isActive) && guest.eventResponses?.mehndi)} 
                       title="Mehndi Guests"
                       description={`Guests with Mehndi responses`}
                       onDownload={() => handleDownloadCSV('mehndi')}
@@ -867,13 +889,13 @@ export default function AdminDashboard() {
                   
                   <TabsContent value="reception">
                     <GuestDataTable 
-                      guests={guests.filter(guest => guest.eventResponses?.reception)} 
-                    title="Reception Guests" 
+                      guests={guests.filter(guest => (showInactiveGuests || guest.isActive) && guest.eventResponses?.reception)} 
+                      title="Reception Guests" 
                       description={`Guests with Reception responses`}
-                    onDownload={() => handleDownloadCSV('reception')} 
+                      onDownload={() => handleDownloadCSV('reception')} 
                       dataType="event"
-                    eventId="reception"
-                  />
+                      eventId="reception"
+                    />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -913,7 +935,7 @@ function EventTab({
   useEffect(() => {
     const fetchInvitedCount = async () => {
       try {
-        const response = await fetch(`/api/admin/invited-count?eventId=${eventId}`);
+        const response = await fetch(`/api/admin/invited-count?eventId=${eventId}&activeOnly=true`);
         if (response.ok) {
           const data = await response.json();
           setTotalInvited(data.count || 0);

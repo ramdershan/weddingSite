@@ -660,6 +660,25 @@ export async function getRSVPSummaryFromSupabase(): Promise<RSVPSummary> {
       throw rsvpsError;
     }
     
+    // Get all guests to check active status
+    const { data: allGuests, error: allGuestsError } = await supabaseAdmin
+      .from('guests')
+      .select('id, is_active');
+      
+    if (allGuestsError) {
+      console.error('Error fetching all guests for active status:', allGuestsError);
+      throw allGuestsError;
+    }
+    
+    // Create a map of guest IDs to active status for quick lookup
+    const guestActiveMap = new Map<string, boolean>();
+    allGuests?.forEach(guest => {
+      guestActiveMap.set(guest.id, guest.is_active);
+    });
+    
+    // Filter RSVPs to only include those from active guests
+    const activeRsvps = rsvps?.filter(rsvp => guestActiveMap.get(rsvp.guest_id) === true) || [];
+    
     // Get total active guest count
     const { count: totalInvitedGuests, error: guestsError } = await supabaseAdmin
       .from('guests')
@@ -702,8 +721,8 @@ export async function getRSVPSummaryFromSupabase(): Promise<RSVPSummary> {
     // Track unique guests who have responded AT LEAST ONCE
     const respondedGuestIds = new Set<string>();
     
-    // Process RSVPs
-    rsvps?.forEach(rsvp => {
+    // Process RSVPs (using filtered active guest RSVPs)
+    activeRsvps.forEach(rsvp => {
       const eventCode = eventMap.get(rsvp.event_id);
       // Only process if the event exists in our active events map
       if (!eventCode || !summary.events[eventCode]) return; 
@@ -754,7 +773,7 @@ export async function getRSVPSummaryFromSupabase(): Promise<RSVPSummary> {
     // Calculate overall adult/children counts by summing from PER-GUEST MAX attending count
     // This prevents double counting if a guest says Yes to multiple events
     const guestAttendanceCounts: Record<string, { adults: number, children: number }> = {};
-    rsvps?.forEach(rsvp => {
+    activeRsvps.forEach(rsvp => {
        if (rsvp.response === 'Yes') { // Only count definite Yes
            const adults = parseInt(rsvp.adult_count || '0') || 0;
            const children = parseInt(rsvp.children_count || '0') || 0;

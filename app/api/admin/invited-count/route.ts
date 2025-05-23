@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     // Get the event ID from the query parameters
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
+    const activeOnly = searchParams.get('activeOnly') === 'true';
     
     if (!eventId) {
       return NextResponse.json(
@@ -60,24 +61,82 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Count guests who have access to RSVP for this event
-    const { count, error: countError } = await supabaseAdmin
-      .from('guest_event_access')
-      .select('*', { count: 'exact', head: true })
-      .eq('event_id', event.id)
-      .eq('can_rsvp', true);
+    if (activeOnly) {
+      // Count only active guests who have access to RSVP for this event
+      // Use a join to filter by active status
+      const query = supabaseAdmin
+        .from('guest_event_access')
+        .select('guest_id', { count: 'exact', head: true })
+        .eq('event_id', event.id)
+        .eq('can_rsvp', true)
+        .filter('guest_id.guests.is_active', 'eq', true);
+        
+      const { count, error: countError } = await query;
       
-    if (countError) {
-      console.error('[Admin Invited Count API] Error counting invited guests:', countError);
-      return NextResponse.json(
-        { error: 'Failed to count invited guests' },
-        { status: 500 }
-      );
+      if (countError) {
+        console.error('[Admin Invited Count API] Error counting active invited guests:', countError);
+        
+        // Fallback to using two queries if the join approach fails
+        const { data: accessData, error: accessError } = await supabaseAdmin
+          .from('guest_event_access')
+          .select('guest_id')
+          .eq('event_id', event.id)
+          .eq('can_rsvp', true);
+          
+        if (accessError) {
+          console.error('[Admin Invited Count API] Fallback query error:', accessError);
+          return NextResponse.json(
+            { error: 'Failed to count invited guests' },
+            { status: 500 }
+          );
+        }
+        
+        // Get the active guests from the guests table
+        if (accessData && accessData.length > 0) {
+          const guestIds = accessData.map(access => access.guest_id);
+          
+          const { data: activeGuests, error: activeError } = await supabaseAdmin
+            .from('guests')
+            .select('id')
+            .in('id', guestIds)
+            .eq('is_active', true);
+            
+          if (activeError) {
+            console.error('[Admin Invited Count API] Error filtering active guests:', activeError);
+            return NextResponse.json(
+              { error: 'Failed to count active invited guests' },
+              { status: 500 }
+            );
+          }
+          
+          console.log(`[Admin Invited Count API] Found ${activeGuests?.length || 0} active guests invited to event: ${eventId}`);
+          return NextResponse.json({ count: activeGuests?.length || 0 });
+        }
+        
+        return NextResponse.json({ count: 0 });
+      }
+      
+      console.log(`[Admin Invited Count API] Found ${count} active guests invited to event: ${eventId}`);
+      return NextResponse.json({ count: count || 0 });
+    } else {
+      // Count all guests who have access to RSVP for this event (including inactive)
+      const { count, error: countError } = await supabaseAdmin
+        .from('guest_event_access')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', event.id)
+        .eq('can_rsvp', true);
+        
+      if (countError) {
+        console.error('[Admin Invited Count API] Error counting invited guests:', countError);
+        return NextResponse.json(
+          { error: 'Failed to count invited guests' },
+          { status: 500 }
+        );
+      }
+      
+      console.log(`[Admin Invited Count API] Found ${count} guests invited to event: ${eventId}`);
+      return NextResponse.json({ count: count || 0 });
     }
-    
-    console.log(`[Admin Invited Count API] Found ${count} guests invited to event: ${eventId}`);
-    
-    return NextResponse.json({ count: count || 0 });
   } catch (error) {
     console.error('[Admin Invited Count API] Error fetching invited count:', error);
     return NextResponse.json(
