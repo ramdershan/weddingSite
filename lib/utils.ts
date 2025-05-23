@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { getEventDateByCode } from './supabase';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -36,10 +37,28 @@ export function formatOpenDate(date: string | Date | null | undefined): string {
   });
 }
 
-export function getWeddingDate(): Date {
-  // Use a date that is definitely in the future
-  const weddingDate = new Date('2026-01-24T13:00:00'); // 1:00 PM on January 24th, 2026
-  return weddingDate;
+export async function getWeddingDate(): Promise<Date> {
+  // Try to get the wedding date from Supabase
+  const date = await getEventDateByCode('wedding');
+  if (date) {
+    return date;
+  }
+  
+  // Fallback to hardcoded date if database fetch fails
+  console.warn('Could not fetch wedding date from database, using fallback date');
+  return new Date('2026-01-24T11:00:00'); // 1:00 PM on January 24th, 2026
+}
+
+export async function getEngagementDate(): Promise<Date> {
+  // Try to get the engagement date from Supabase
+  const date = await getEventDateByCode('engagement');
+  if (date) {
+    return date;
+  }
+  
+  // Fallback to hardcoded date if database fetch fails
+  console.warn('Could not fetch engagement date from database, using fallback date');
+  return new Date('2025-09-27T17:30:00'); // 5:00 PM on August 15th, 2025
 }
 
 // Add this function to handle navigation to sections on the home page

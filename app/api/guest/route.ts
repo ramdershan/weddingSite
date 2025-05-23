@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       response.cookies.set('guest_session', session.session_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 24 * 60 * 60, // 24 hours
         path: '/'
       });
     }

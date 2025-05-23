@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, MapPin, Heart, Camera, PartyPopper, Diamond } from 'lucide-react';
 import { PhotoGallerySection } from '@/components/photo-gallery-section';
 import { CountdownTimer } from '@/components/countdown-timer';
-import { getWeddingDate, isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed, navigateToHomeSection, scrollToSection, isRsvpOpen, formatOpenDate } from '@/lib/utils';
+import { getWeddingDate, getEngagementDate, isRsvpDeadlinePassed, isEngagementRsvpDeadlinePassed, navigateToHomeSection, scrollToSection, isRsvpOpen, formatOpenDate } from '@/lib/utils';
 import { LoginModal } from '@/components/login-modal';
 import { useGuestContext } from '@/context/guest-context';
 import { RingIcon } from '@/components/icons/ring-icon';
@@ -126,7 +126,8 @@ export default function Home() {
   const [engagementDeadlinePassed, setEngagementDeadlinePassed] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pageReady, setPageReady] = useState(false);
-  const weddingDate = getWeddingDate();
+  const weddingDate = new Date('2026-01-24T11:00:00'); // Default until loaded
+  const engagementDate = new Date('2025-09-27T17:30:00'); // Default until loaded
   const { guest, isLoading, events } = useGuestContext();
   
   // Handle URL hash navigation after page is loaded
@@ -380,7 +381,7 @@ export default function Home() {
           </div>
           
           <CountdownTimer 
-            targetDate={weddingDate} 
+            targetDate={engagementDate} 
             className="max-w-3xl mx-auto" 
           />
         </div>
