@@ -7,6 +7,7 @@ import { getWeddingDate } from '@/lib/utils';
 import { GuestProvider } from '@/context/guest-context';
 import { UserNav } from '@/components/user-nav';
 import { NavLink } from '@/components/nav-link';
+import { ConditionalNavbar } from '@/components/conditional-navbar';
 import Script from 'next/script';
 import { headers } from 'next/headers';
 
@@ -85,12 +86,7 @@ export default function RootLayout({
                       Yukti & Ram
                     </NavLink>
                     
-                    <nav className="hidden md:flex items-center space-x-8">
-                      <NavLink href="/#our-story">Our Story</NavLink>
-                      <NavLink href="/#timeline">Details</NavLink>
-                      <NavLink href="/#rsvp">RSVP</NavLink>
-                      <NavLink href="/#photos">Gallery</NavLink>
-                    </nav>
+                    <ConditionalNavbar />
                     
                     <UserNav />
                   </div>

@@ -81,7 +81,6 @@ export type EventAccess = {
 export async function getGuestEvents(guestId: string): Promise<{events: SupabaseEvent[], access: EventAccess[]}> {
   console.log(`[Supabase] Fetching events for guest ID: ${guestId}`);
   try {
-    // First approach: Get only the events with RSVP access
     // Get the event IDs that the guest can RSVP to
     const { data: accessData, error: accessError } = await supabaseAdmin
       .from('guest_event_access')

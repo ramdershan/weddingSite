@@ -10,6 +10,7 @@ export interface GuestContextType {
   guest: Guest | null;
   isLoading: boolean;
   events: EventData[];
+  timelineEvents: EventData[];
   setGuest: (guest: Guest, events?: EventData[]) => void;
   clearGuest: () => void;
   validateSession: () => Promise<void>;
@@ -20,6 +21,7 @@ const GuestContext = createContext<GuestContextType | undefined>(undefined);
 export const GuestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [guest, setGuestState] = useState<Guest | null>(null);
   const [events, setEvents] = useState<EventData[]>([]);
+  const [timelineEvents, setTimelineEvents] = useState<EventData[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +31,16 @@ export const GuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const loadGuestData = async () => {
       try {
+        // Fetch timeline events immediately (not guest-specific)
+        const timelineResponse = await fetch('/api/events');
+        if (timelineResponse.ok) {
+          const timelineData = await timelineResponse.json();
+          if (timelineData.events) {
+            setTimelineEvents(timelineData.events);
+            localStorage.setItem('wedding_timeline_events', JSON.stringify(timelineData.events));
+          }
+        }
+
         // Try to get session token from localStorage
         const storedToken = localStorage.getItem('wedding_guest_session');
         if (storedToken) {
@@ -63,55 +75,35 @@ export const GuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               console.error('Error parsing stored events:', error);
             }
           }
-          
-          // Even if we have local data, validate the session with API to ensure it's still valid
-          await validateSessionWithAPI(storedToken, loadedGuest);
-        } else {
-          // If no token in localStorage, try validating session cookie directly
-          // This covers the case where localStorage was cleared but HTTP cookie is still valid
-          try {
-            const response = await fetch('/api/auth/validate-session', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ useCookie: true }),
-            });
-            
-            const data = await response.json();
-            
-            if (data.success && data.guest && data.sessionToken) {
-              // We have a valid session from cookie, restore local storage
-              const cookieGuest = {
-                fullName: data.guest.fullName,
-                responded: false,
-                invitedEvents: data.guest.invitedEvents || ['engagement', 'wedding', 'reception'],
-                // Add other default properties as needed
-              };
-              
-              setGuestState(cookieGuest);
-              localStorage.setItem('wedding_guest', JSON.stringify(cookieGuest));
-              localStorage.setItem('wedding_guest_session', data.sessionToken);
-              setSessionToken(data.sessionToken);
-              
-              // Also store events if they're included
-              if (data.events) {
-                setEvents(data.events);
-                localStorage.setItem('wedding_guest_events', JSON.stringify(data.events));
-              }
-            } else {
-              // No valid session in cookie either, clear everything
-              localStorage.removeItem('wedding_guest');
-              localStorage.removeItem('wedding_guest_session');
-              localStorage.removeItem('wedding_guest_events');
-              setGuestState(null);
-              setEvents([]);
+
+          // Check for stored timeline events
+          const storedTimelineEvents = localStorage.getItem('wedding_timeline_events');
+          if (storedTimelineEvents) {
+            try {
+              const parsedTimelineEvents = JSON.parse(storedTimelineEvents);
+              setTimelineEvents(parsedTimelineEvents);
+            } catch (error) {
+              console.error('Error parsing stored timeline events:', error);
             }
-          } catch (error) {
-            console.error('Error checking cookie session:', error);
-            // Clear guest state on error
+          }
+          
+          // Validate session with server and update if needed
+          const isValidSession = await validateSessionWithAPI(storedToken, loadedGuest);
+          if (!isValidSession) {
+            // Session is invalid, clear everything
             setGuestState(null);
             setEvents([]);
+          }
+        } else {
+          // No stored session, still load timeline events but don't try to validate
+          const storedTimelineEvents = localStorage.getItem('wedding_timeline_events');
+          if (storedTimelineEvents) {
+            try {
+              const parsedTimelineEvents = JSON.parse(storedTimelineEvents);
+              setTimelineEvents(parsedTimelineEvents);
+            } catch (error) {
+              console.error('Error parsing stored timeline events:', error);
+            }
           }
         }
       } catch (error) {
@@ -418,7 +410,7 @@ export const GuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [clearGuest]);
 
   return (
-    <GuestContext.Provider value={{ guest, events, setGuest, clearGuest, isLoading, validateSession }}>
+    <GuestContext.Provider value={{ guest, events, timelineEvents, setGuest, clearGuest, isLoading, validateSession }}>
       {children}
     </GuestContext.Provider>
   );

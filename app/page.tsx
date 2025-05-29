@@ -128,7 +128,7 @@ export default function Home() {
   const [pageReady, setPageReady] = useState(false);
   const weddingDate = new Date('2026-01-24T11:00:00'); // Default until loaded
   const engagementDate = new Date('2025-09-27T17:30:00'); // Default until loaded
-  const { guest, isLoading, events } = useGuestContext();
+  const { guest, isLoading, events, timelineEvents } = useGuestContext();
   
   // Handle URL hash navigation after page is loaded
   useEffect(() => {
@@ -199,12 +199,12 @@ export default function Home() {
   };
   
   // For the timeline section - all events the guest can see
-  const timelineEvents = useMemo(() => {
-    // If guest is logged in, use their specific events
-    if (guest && events && events.length > 0) {
-      console.log("Using events from database for timeline:", events);
+  const timelineEventsList = useMemo(() => {
+    // Always show all events in timeline regardless of guest invitation
+    if (timelineEvents && timelineEvents.length > 0) {
+      console.log("Using timeline events from context:", timelineEvents);
       // Sort events by date
-      return [...events].sort((a, b) => {
+      return [...timelineEvents].sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
         return dateA.getTime() - dateB.getTime();
@@ -228,10 +228,21 @@ export default function Home() {
     
     // Default to empty array if no events
     return [];
-  }, [guest, events]);
+  }, [timelineEvents]); // Use timelineEvents instead of events
   
   // For the RSVP section - only parent events with RSVP access
+  // Hide RSVP section for guests who only have engagement access
   const eventCards = useMemo(() => {
+    // Check if guest only has engagement access
+    const hasOnlyEngagementAccess = guest && events && events.length > 0 && 
+      events.filter(event => event.canRsvp).every(event => event.id === 'engagement');
+    
+    // If guest only has engagement access, return empty array to hide RSVP section
+    if (hasOnlyEngagementAccess) {
+      console.log("Guest only has engagement access, hiding RSVP section");
+      return [];
+    }
+    
     // If we have events from the database, use those
     if (events && events.length > 0) {
       console.log("Using events from DB for cards:", events);
@@ -286,6 +297,19 @@ export default function Home() {
     console.log("No events found from database for RSVP cards");
     return [];
   }, [events, guest?.eventResponses]);
+  
+  // Check if guest should see RSVP section at all
+  const shouldShowRsvpSection = useMemo(() => {
+    // Always show for non-logged-in users (to display public events)
+    if (!guest) return true;
+    
+    // Check if guest only has engagement access
+    const hasOnlyEngagementAccess = guest && events && events.length > 0 && 
+      events.filter(event => event.canRsvp).every(event => event.id === 'engagement');
+    
+    // Hide RSVP section if guest only has engagement access
+    return !hasOnlyEngagementAccess;
+  }, [guest, events]);
   
   // For showing events to non-logged-in users (public view)
   const publicEvents = useMemo(() => {
@@ -362,28 +386,12 @@ export default function Home() {
           
           {guest ? (
             <p className="text-xl md:text-2xl text-white/90 mb-2 font-light">
-              {guest.invitedEvents && guest.invitedEvents.length > 0 && 
-               guest.invitedEvents.some((event: any) => 
-                 (typeof event === 'string' && event !== 'engagement') || 
-                 (typeof event === 'object' && event.code !== 'engagement')
-               ) ? (
-                <>Dear {guest.fullName}, you're invited to our wedding celebration!</>
-              ) : (
-                <>Dear {guest.fullName}, you're invited to our engagement celebration!</>
-              )}
+              Dear {guest.fullName}, you're invited to our wedding celebration!
             </p>
           ) : null}
           
           <p className="text-xl md:text-2xl text-white/90 mb-8 font-light tracking-wide">
-            {guest && guest.invitedEvents && guest.invitedEvents.length > 0 && 
-             guest.invitedEvents.some((event: any) => 
-               (typeof event === 'string' && event !== 'engagement') || 
-               (typeof event === 'object' && event.code !== 'engagement')
-             ) ? (
-              <>January 24, 2026 • Mangli Lake Farm</>
-            ) : (
-              <>September 27, 2025 • ACCA Banquet, Edmonton</>
-            )}
+            January 24, 2026 • Mangli Lake Farm
           </p>
         </div>
       </section>
@@ -397,11 +405,7 @@ export default function Home() {
           </div>
           
           <CountdownTimer 
-            targetDate={guest && guest.invitedEvents && guest.invitedEvents.length > 0 && 
-              guest.invitedEvents.some((event: any) => 
-                (typeof event === 'string' && event !== 'engagement') || 
-                (typeof event === 'object' && event.code !== 'engagement')
-              ) ? weddingDate : engagementDate} 
+            targetDate={weddingDate} 
             className="max-w-3xl mx-auto" 
           />
         </div>
@@ -470,10 +474,10 @@ export default function Home() {
           </div>
           
           <div className="max-w-4xl mx-auto">
-            {timelineEvents.length > 0 ? (
+            {timelineEventsList.length > 0 ? (
               <div className="relative">
                 <div className="space-y-10 md:space-y-12">
-                  {timelineEvents.map((event, index) => (
+                  {timelineEventsList.map((event, index) => (
                     <div className="relative" key={event.id}>
                       <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
                         <div className="md:text-right md:pr-8 mb-3 md:mb-0 relative">
@@ -494,117 +498,119 @@ export default function Home() {
               </div>
             ) : (
               <div className="text-center p-6 bg-muted rounded-lg">
-                <p>{guest ? "No events available for you at this time." : "Please sign in to view the event timeline."}</p>
+                <p>Event timeline coming soon.</p>
               </div>
             )}
           </div>
         </div>
       </section>
 
-      <section className="py-20 bg-[#f4d6c1] relative" id="rsvp">
-        {/* <div className="hidden md:block absolute top-4 left-[20%] xl:left-[25%] z-30 transform -rotate-5 pointer-events-none">
-          <Image src="/flower2.png" alt="" width={105} height={105} />
-        </div> */}
+      {shouldShowRsvpSection && (
+        <section className="py-20 bg-[#f4d6c1] relative" id="rsvp">
+          {/* <div className="hidden md:block absolute top-4 left-[20%] xl:left-[25%] z-30 transform -rotate-5 pointer-events-none">
+            <Image src="/flower2.png" alt="" width={105} height={105} />
+          </div> */}
 
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-windsong mb-2">RSVP Here</h2>
-            <div className="h-px w-20 bg-primary/50 mx-auto"></div>
-          </div>
-          
-          {/* Flexible layout that properly centers all card configurations */}
-          <div className={`grid gap-8 mx-auto place-items-center ${
-            // If we only have 1 card, display in single column
-            (guest && eventCards.length === 1) || (!guest && publicEvents.length === 1) 
-              ? 'grid-cols-1 max-w-md' 
-              // If we have exactly 2 cards, use a 2-column grid with centered container
-              : (guest && eventCards.length === 2) || (!guest && publicEvents.length === 2)
-                ? 'grid-cols-1 md:grid-cols-2 max-w-2xl' 
-                // Otherwise use responsive grid that can fit up to 3 cards
-                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-5xl'
-          }`}>
-            {guest ? (
-              eventCards.length > 0 ? (
-                eventCards.map(event => (
-                  <EventCard 
-                    key={event.id}
-                    title={event.title} 
-                    date={event.date} 
-                    time={event.time_display}
-                    location={event.location}
-                    icon={event.icon}
-                    eventId={event.id}
-                    disabled={event.disabled}
-                    deadlineMessage={event.deadlineMessage}
-                    guest={guest}
-                    onLoginClick={() => setShowLoginModal(true)}
-                    onRsvpClick={handleRsvpClick}
-                    showLocation={!!guest}
-                    maps_link={event.maps_link}
-                    hasResponded={event.hasResponded}
-                  />
-                ))
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-windsong mb-2">RSVP Here</h2>
+              <div className="h-px w-20 bg-primary/50 mx-auto"></div>
+            </div>
+            
+            {/* Flexible layout that properly centers all card configurations */}
+            <div className={`grid gap-8 mx-auto place-items-center ${
+              // If we only have 1 card, display in single column
+              (guest && eventCards.length === 1) || (!guest && publicEvents.length === 1) 
+                ? 'grid-cols-1 max-w-md' 
+                // If we have exactly 2 cards, use a 2-column grid with centered container
+                : (guest && eventCards.length === 2) || (!guest && publicEvents.length === 2)
+                  ? 'grid-cols-1 md:grid-cols-2 max-w-2xl' 
+                  // Otherwise use responsive grid that can fit up to 3 cards
+                  : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-5xl'
+            }`}>
+              {guest ? (
+                eventCards.length > 0 ? (
+                  eventCards.map(event => (
+                    <EventCard 
+                      key={event.id}
+                      title={event.title} 
+                      date={event.date} 
+                      time={event.time_display}
+                      location={event.location}
+                      icon={event.icon}
+                      eventId={event.id}
+                      disabled={event.disabled}
+                      deadlineMessage={event.deadlineMessage}
+                      guest={guest}
+                      onLoginClick={() => setShowLoginModal(true)}
+                      onRsvpClick={handleRsvpClick}
+                      showLocation={!!guest}
+                      maps_link={event.maps_link}
+                      hasResponded={event.hasResponded}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center p-6 bg-muted rounded-lg col-span-full">
+                    <p>No events available for RSVP at this time.</p>
+                  </div>
+                )
               ) : (
-                <div className="text-center p-6 bg-muted rounded-lg col-span-full">
-                  <p>No events available for RSVP at this time.</p>
+                // For non-logged in users, show a preview of public events
+                publicEvents.length > 0 ? (
+                  publicEvents.map(event => (
+                    <EventCard 
+                      key={event.id}
+                      title={event.title} 
+                      date={event.date} 
+                      time={event.time_display}
+                      location={event.location}
+                      icon={event.icon}
+                      eventId={event.id}
+                      disabled={event.disabled}
+                      deadlineMessage={event.deadlineMessage}
+                      guest={null}
+                      onLoginClick={() => setShowLoginModal(true)}
+                      onRsvpClick={handleRsvpClick}
+                      showLocation={false}
+                      maps_link={event.maps_link}
+                      hasResponded={event.hasResponded}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center p-6 bg-muted rounded-lg col-span-full">
+                    <p>Sign in to see available events.</p>
+                  </div>
+                )
+              )}
+            </div>
+            
+            {deadlinePassed && (
+              <div className="mt-12 text-center">
+                <div className="inline-block bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md">
+                  <p className="font-medium">RSVP period has ended</p>
+                  <p className="text-sm mt-1">The deadline for RSVPs was January 1, 2026</p>
                 </div>
-              )
-            ) : (
-              // For non-logged in users, show a preview of public events
-              publicEvents.length > 0 ? (
-                publicEvents.map(event => (
-                  <EventCard 
-                    key={event.id}
-                    title={event.title} 
-                    date={event.date} 
-                    time={event.time_display}
-                    location={event.location}
-                    icon={event.icon}
-                    eventId={event.id}
-                    disabled={event.disabled}
-                    deadlineMessage={event.deadlineMessage}
-                    guest={null}
-                    onLoginClick={() => setShowLoginModal(true)}
-                    onRsvpClick={handleRsvpClick}
-                    showLocation={false}
-                    maps_link={event.maps_link}
-                    hasResponded={event.hasResponded}
-                  />
-                ))
-              ) : (
-                <div className="text-center p-6 bg-muted rounded-lg col-span-full">
-                  <p>Sign in to see available events.</p>
+              </div>
+            )}
+            
+            {!guest && !deadlinePassed && (
+              <div className="mt-12 text-center">
+                <div className="inline-block bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md">
+                  <p className="font-medium">Please sign in to RSVP</p>
+                  <p className="text-sm mt-1">Enter your name as it appears on your invitation</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-3 bg-white"
+                    onClick={() => setShowLoginModal(true)}
+                  >
+                    Sign In
+                  </Button>
                 </div>
-              )
+              </div>
             )}
           </div>
-          
-          {deadlinePassed && (
-            <div className="mt-12 text-center">
-              <div className="inline-block bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md">
-                <p className="font-medium">RSVP period has ended</p>
-                <p className="text-sm mt-1">The deadline for RSVPs was January 1, 2026</p>
-              </div>
-            </div>
-          )}
-          
-          {!guest && !deadlinePassed && (
-            <div className="mt-12 text-center">
-              <div className="inline-block bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md">
-                <p className="font-medium">Please sign in to RSVP</p>
-                <p className="text-sm mt-1">Enter your name as it appears on your invitation</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-3 bg-white"
-                  onClick={() => setShowLoginModal(true)}
-                >
-                  Sign In
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
 
       <PhotoGallerySection />
 
@@ -612,15 +618,7 @@ export default function Home() {
         <div className="container mx-auto px-4 bg-white">
           <h3 className="text-2xl font-windsong mb-2">Yukti & Ram</h3>
           <p className="text-muted-foreground mb-6">
-            {guest && guest.invitedEvents && guest.invitedEvents.length > 0 && 
-              guest.invitedEvents.some((event: any) => 
-                (typeof event === 'string' && event !== 'engagement') || 
-                (typeof event === 'object' && event.code !== 'engagement')
-              ) ? (
-              <>January 24, 2026</>
-            ) : (
-              <>September 27, 2025</>
-            )}
+            January 24, 2026
           </p>
 
           
