@@ -386,7 +386,7 @@ export default function Home() {
           
           {guest ? (
             <p className="text-xl md:text-2xl text-white/90 mb-2 font-light">
-              Dear {guest.fullName}, you're invited to our wedding celebration!
+              Dear {guest.fullName}, welcome to our wedding page!
             </p>
           ) : null}
           
@@ -401,7 +401,7 @@ export default function Home() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-windsong mb-2">Celebrating Our Love</h2>
-            <p className="text-muted-foreground">Join us for our special day</p>
+            <p className="text-muted-foreground">Countdown to our special day</p>
           </div>
           
           <CountdownTimer 
