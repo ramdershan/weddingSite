@@ -103,7 +103,7 @@ export function LoginForm() {
             Logging in...
           </>
         ) : (
-          "Continue to RSVP"
+          "Continue"
         )}
       </Button>
     </form>
