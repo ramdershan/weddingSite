@@ -391,7 +391,7 @@ export default function Home() {
           ) : null}
           
           <p className="text-xl md:text-2xl text-white/90 mb-8 font-light tracking-wide">
-            January 24, 2026 • Mangli Lake Farm
+            January 24, 2026 • Madhuban Village
           </p>
         </div>
       </section>

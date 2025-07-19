@@ -207,7 +207,7 @@ export default function CountdownPage() {
           </div>
           
           <p className="mt-12 text-rose-500 font-light font-serif italic">
-            January 24, 2026 • Mangli Lake Farm
+            January 24, 2026 • Madhuban Village
           </p>
         
           
