@@ -125,11 +125,17 @@ async function main() {
       continue;
     }
     
-    const normalizedName = guestFromSource.name.trim();
+    const normalizedName = guestFromSource.name.trim().replace(/(\r\n|\n|\r)/gm, " ").trim();
     const sanitizedPhoneNumber = sanitizeAndValidatePhoneNumber(guestFromSource.phoneNumber);
 
+    if(!sanitizedPhoneNumber) {
+        console.warn(`[Seed] Skipping guest '${normalizedName}' due to missing or invalid phone number.`);
+        skipped++;
+        continue;
+    }
+
     const existingGuestInDb = existingDbGuests.find(
-      g => g.full_name.toLowerCase() === normalizedName.toLowerCase()
+      (g: SupabaseGuest & { phone_number?: string }) => g.phone_number === sanitizedPhoneNumber
     );
 
     let guestIdForAccessManagement: string | undefined;
@@ -140,22 +146,13 @@ async function main() {
     const guestDataPayload: Partial<SupabaseGuest> = {
       full_name: normalizedName,
       is_active: true,
-      // Only add phone_number to payload if it's valid and present
-      ...(sanitizedPhoneNumber && { phone_number: sanitizedPhoneNumber }),
+      phone_number: sanitizedPhoneNumber,
     };
 
     if (!existingGuestInDb) {
       // Add new guest
-      if (!sanitizedPhoneNumber) {
-        console.error(`[Seed] Skipping NEW guest '${normalizedName}' due to missing or invalid phone number from source. Phone (raw): '${guestFromSource.phoneNumber}'.`);
-        skipped++;
-        continue; // Cannot create new guest without valid phone for NOT NULL constraint
-      }
-      // Ensure phone_number is in the payload for new guest
-      (guestDataPayload as Partial<SupabaseGuest & { phone_number?: string }>).phone_number = sanitizedPhoneNumber;
-
       try {
-        const result = await createGuest(guestDataPayload as Omit<SupabaseGuest, 'id' | 'created_at' | 'updated_at' | 'phone_number'> & { phone_number: string });
+        const result = await createGuest(guestDataPayload as Omit<SupabaseGuest, 'id' | 'created_at' | 'updated_at'>);
         if (result) {
           added++;
           guestDetailsUpdated = true;
@@ -171,7 +168,7 @@ async function main() {
         skipped++;
       }
     } else {
-      // Existing guest: update if necessary (reactivate or update phone)
+      // Existing guest: update if necessary (reactivate or update name)
       let needsUpdate = false;
       const updatePayload: Partial<SupabaseGuest> = { is_active: true };
 
@@ -180,13 +177,10 @@ async function main() {
         console.log(`[Seed] Guest '${normalizedName}' will be reactivated.`);
       }
 
-      if (sanitizedPhoneNumber && (existingGuestInDb as SupabaseGuest & { phone_number?: string }).phone_number !== sanitizedPhoneNumber) {
-        (updatePayload as Partial<SupabaseGuest & { phone_number?: string }>).phone_number = sanitizedPhoneNumber;
+      if (existingGuestInDb.full_name !== normalizedName) {
+        updatePayload.full_name = normalizedName;
         needsUpdate = true;
-        console.log(`[Seed] Guest '${normalizedName}' phone will be updated to ${sanitizedPhoneNumber} from ${(existingGuestInDb as SupabaseGuest & { phone_number?: string }).phone_number || 'N/A'}.`);
-      } else if (guestFromSource.phoneNumber && !sanitizedPhoneNumber) {
-        // Phone was provided in CSV but was invalid
-        console.warn(`[Seed] Guest '${normalizedName}': Invalid phone '${guestFromSource.phoneNumber}' in source. Existing phone '${(existingGuestInDb as SupabaseGuest & { phone_number?: string }).phone_number || 'N/A'}' will be kept.`);
+        console.log(`[Seed] Guest with phone ${sanitizedPhoneNumber} name will be updated to ${normalizedName} from ${existingGuestInDb.full_name}.`);
       }
 
       if (needsUpdate) {
@@ -285,27 +279,25 @@ async function main() {
     }
   }
 
-  // Deactivate guests not in the current consolidated list
-  const currentSourceGuestNamesLower = guestsToProcess.map(g => g.name.trim().toLowerCase());
+  // Deactivate guests that are in the database but not in the CSV list
+  const sourcePhoneNumbers = new Set(
+    guestsToProcess
+      .map(g => sanitizeAndValidatePhoneNumber(g.phoneNumber))
+      .filter((p): p is string => p !== null)
+  );
+  
   for (const dbGuest of existingDbGuests) {
-    if (!currentSourceGuestNamesLower.includes(dbGuest.full_name.toLowerCase()) && dbGuest.is_active) {
-      try {
-        const result = await updateGuest(dbGuest.id, { is_active: false });
-        if (result) {
-          deactivated++;
-          console.log(`[Seed] Deactivated guest: ${dbGuest.full_name}`);
-          
-          // No need to manually update RSVPs validity - this is now handled by the view
-        } else {
-          console.error(`[Seed] Failed to deactivate guest (API returned null/false): ${dbGuest.full_name}`);
-        }
-      } catch (dbError: any) {
-        console.error(`[Seed] DB Error deactivating guest '${dbGuest.full_name}':`, dbError.message);
+    const phone = (dbGuest as SupabaseGuest & { phone_number?: string }).phone_number;
+    if (phone && !sourcePhoneNumbers.has(phone)) {
+      if (dbGuest.is_active) {
+        console.log(`[Seed] Deactivating guest not found in source: ${dbGuest.full_name} (${phone})`);
+        await updateGuest(dbGuest.id, { is_active: false });
+        deactivated++;
       }
     }
   }
 
-  console.log('[Seed] Guest seeding complete:');
+  console.log('\n[Seed] Seeding complete.');
   console.log(`- Added: ${added}`);
   console.log(`- Updated (reactivated or phone change): ${updated}`);
   console.log(`- Event access updates: ${eventAccessUpdates}`);

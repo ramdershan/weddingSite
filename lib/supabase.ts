@@ -36,6 +36,7 @@ export type SupabaseGuest = {
   id: string;
   full_name: string;
   is_active: boolean;
+  phone_number?: string;
   dietary_restrictions?: string; // Add optional dietary restrictions field
   created_at: string;
   updated_at: string;
@@ -45,6 +46,7 @@ export type SupabaseGuest = {
 export type GuestData = {
   full_name: string;
   is_active: boolean;
+  phone_number?: string;
   invited_events?: string[];
 };
 

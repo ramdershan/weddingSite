@@ -1,28 +1,11 @@
 name,phoneNumber,rsvpEventCodes
-John Smith,0000000000,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Michael Johnson,0000000002,"wedding,reception"
-Emily Williams,0000000003,"wedding"
-Robert Brown,0000000004,"wedding,sangeet,haldi"
-Sarah Davis,0000000005,"wedding,reception,ceremony"
-David Miller,0000000006,"wedding,engagement"
-Jennifer Wilson,0000000007,"wedding"
-Christopher Moore,0000000008,"wedding,reception"
-Jessica Taylor,0000000009,"wedding,haldi"
-New Test Guest,0000000010,"wedding,reception,sangeet"
-Another New Guest,0000000011,"" 
-Zode Family,1112223333,"wedding,reception,engagement,sangeet"
+Yukti Zode,5877788345,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Shriya Agrawal,2508997042,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Evangeline Saclamacis,4038180436,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Venedict Tamondong ,7808036013,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Andrew Memije,7785580049,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Sarah Sawatzky,7788381834,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Raphael Chevallier,6505268064,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Harini Methma,4256159774,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Shreya Saxena,3317011323,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Krishna Bhatt,5879215783,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Mishal Hasan,7788364956,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Danilo Chiarlone,2508996891,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Beatriz Gascon Lourenco,2369707011,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Krishna Purani & Family,7808076876,"mehndi,engagement,reception,wedding,sangeet,haldi"
 Tyrel Narciso,2509369757,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Krishna Purani,7808076876,engagement
 Hamayun Aziz,2369985193,"wedding,reception,engagement,sangeet,haldi,mehndi"
@@ -36,51 +19,64 @@ Prashi Ma,2508992696,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Cristian Pereira,7496940835,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Vikram Bairathi,9829015000,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Dayne Jose,6472250827,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Saphaan Swaleh ,7806761480,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Sheetal Dhaneshwari,7806804403,engagement
-Simran Sarai,7802035298,engagement
-Jaya Arora,7807523326,engagement
-Amitoj Khokhar,7788469310,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Anu Januhen,7782146030,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Prashant Hayatnagarkar,5875868340,engagement
-Parag Arvikar ,7802323533,engagement
-Sandip Arvikar ,7802157503,engagement
-Niraj Arvikar ,4033838750,engagement
-Amit Lonkar,7809528426,engagement
-Paresh Gandhi,7806954311,engagement
-Hemant Bhadane,5877102503,engagement
-Manoj Medhekar,7809084120,engagement
-Santosh Kulkarni,7809642573,engagement
-Sameer Gokhale,7807184412,engagement
-Sameer Musharif,7809376625,engagement
-Sachin Patil,4035894433,engagement
-Hemang Pandit,7808681056,engagement
-Yogesh Chopade,5879749073,engagement
-Raju Kalyanshetti,7807172608,engagement
-Hardik Thakkar,6045185934,engagement
-Bhavin Paunikar,5483339324,engagement
-Viraj Patil,7809388142,engagement
-Ashok Patil,7802004488,engagement
-Sarang Dutt,7806804953,engagement
-Shiv Dutt,7809642607,engagement
-Amol Pathak,5879892244,engagement
-Vinayak Deshpande,7803815670,engagement
-SV Raman,7809072882,engagement
-Alok Chaturvedi,4039682318,engagement
-Sunil Dekate,4039231125,engagement
-Ajay Ambhorkar,5872256798,engagement
-Mahadeo Tadkase,4038906096,engagement
-Ajay Likhar ,4034029976,engagement
-Vidya Netrakanti,7804465846,engagement
-Sharad Mokashi,7804392705,engagement
-Rohit Parekh,5878736871,engagement
-Bhuvanesh Lad,4036122950,engagement
-Vandana Deshpande,7802886872,engagement
-Nanda Jadhav,7806197804,engagement
-Meet Parekh,6476461660,engagement
-Dwiti Gandhi,7806954612,engagement
-Mridul Jain,5489973122,engagement
+Saphaan Swaleh,7806761480,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Raphael Chevallier,6505268064,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Shri Parag Arvikar & Family,7802323533,engagement
+Arora Family,7807523326,engagement
+Shri Mahadeo Tadkase & Family,4038906096,engagement
+Shri Rohit Parekh,5878736871,engagement
+Shri Sunil Dekate & Family,4039231125,engagement
+Shri Hemant Bhadane & Family,5877102503,engagement
+Shri Vinayak Deshpande & Family,7803815670,engagement
+Shri Sarang Dutt & Family,7806804953,engagement
+Smt Vandana Deshpande & Family,7802886872,engagement
+Shri Viraj Patil & Family,7809388142,engagement
+Shri Yogesh Chopade & Family,5879749073,engagement
+Shri Manoj Medhekar & Family,7809084120,engagement
+Shri Ajay Likhar & Family,4034029976,engagement
+Shri Santosh Kulkarni & Family,7809642573,engagement
+Shri Sandip Arvikar & Family,7802157503,engagement
+Shri Bhuvanesh Lad & Family,4036122950,engagement
+Shri Wasudeo Zode & Family,5873383213,engagement
+Shri Sharad Mokashi & Family,7804392705,engagement
+Shri Amit Lonkar & Family,7809528426,engagement
+Shri Sameer Gokhale & Family,7807184412,engagement
+Shri Shiv Dutt & Family,7809642607,engagement
+Shri Ajay Ambhorkar & Family,5872256798,engagement
+Shri Amol Pathak & Family,5879892244,engagement
+Shri Alok Chaturvedi & Family,4039682318,engagement
+Shri SV Raman & Family,7809072882,engagement
+Shri Ashok Patil & Family,7802004488,engagement
+Mr. Sudarsanan Pankajakshan,8089232057,engagement
+Shri Hardik Thakkar & Family,6045185934,engagement
+Dhaneshwari Family,7806804403,engagement
+Smt Dwiti & Family,7806954612,engagement
+Smt Nanda Jadhav & Family,7806197804,engagement
+Shri Sachin Patil & Family,4035894433,engagement
+Sarai Family,7802035298,engagement
+Beatriz Gascon Lourenco,2369707011,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Evangeline Saclamacis,4038180436,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Venedict Tamondong,7808036013,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Harini Methma,4256159774,"wedding,reception,engagement,sangeet,haldi,mehndi"
 Ram Dershan,4037146158,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Yukti Zode,5877788345,"wedding,reception,engagement,sangeet,haldi,mehndi"
-Wasudeo Zode,5873383213,engagement
-Sudarsanan Pankajakshan,8089232057,engagement
+Shreya Saxena & Family,3317011323,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Danilo Chiarlone,2508996891,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Sridharan Rajagopal,4037147736,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Hamayun Aziz,2369985193,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Shri Hemang Pandit & Family,7808681056,engagement
+Shri Mridul Jain & Family,5489973122,engagement
+Smt. Vidya Netrakanti,7804465846,engagement
+Shri Meet Parekh & Family,6476461660,engagement
+Gibran Merchant,8044779055,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Mira Karani Gupta,7786839779,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Ashumi Shah,9167615516,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Amitoj & Ajay Grover,7788469310,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Shri Niraj Arvikar & Family,4033838750,engagement
+Anu Januhen & Family,7782146030,"wedding,reception,engagement,sangeet,haldi,mehndi"
+Shri Prashant Hayatnagarkar & Family,5875868340,engagement
+Shri Paresh Gandhi & Family,7806954311,engagement
+Shri Samir Mushrif & Family,7809376625,engagement
+Shri Raju Kalyanshetti & Family,7807172608,engagement
+Shri Bhavin Paunikar,5483339324,engagement
+Shri Anand Sekhar & Family,7905359907,engagement
+Shri Vinod Divekar & Family, 7809344196, engagement
